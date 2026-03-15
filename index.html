@@ -1,0 +1,2712 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>3D Print Kalkulator</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f2f5;--surf:#fff;--surf2:#f7f8fa;--surf3:#eef0f4;
+  --bdr:#e2e6ec;--bdr2:#d0d6e0;
+  --txt:#1a1f2e;--sub:#6b7694;--muted:#9ba5be;
+  --blue:#3b6cf7;--blue-bg:#eef2ff;--blue-lt:#dbe6ff;
+  --green:#16a34a;--green-bg:#f0fdf4;--green-lt:#bbf7d0;
+  --red:#dc2626;--red-bg:#fef2f2;--red-lt:#fecaca;
+  --org:#ea6c2b;--org-bg:#fff4ee;--org-lt:#fed7aa;
+  --ylw:#ca8a04;--ylw-bg:#fefce8;
+  --dark:#1a1f2e;--dark2:#252c3f;
+  --r:10px;--r-sm:7px;
+  --shd:0 1px 3px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.04);
+  --shd-lg:0 8px 32px rgba(0,0,0,.12);
+  --sb-w:225px;--mob-nav:64px;
+}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5}
+.app{display:flex;height:100vh;overflow:hidden}
+
+/* ═══ SIDEBAR ═══ */
+.sidebar{
+  width:var(--sb-w);background:var(--dark);display:flex;flex-direction:column;
+  flex-shrink:0;overflow:hidden;transition:transform .25s ease;z-index:200;
+}
+.sb-brand{padding:22px 20px 16px;border-bottom:1px solid #ffffff12}
+.sb-logo{font-size:24px;margin-bottom:6px}
+.sb-title{font-size:.92rem;font-weight:700;color:#fff;line-height:1.2}
+.sb-sub{font-size:.72rem;color:#8a95b4;margin-top:2px}
+.sb-nav{padding:10px 0;flex:1}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:10px 20px;
+  color:#8a95b4;cursor:pointer;font-size:.86rem;font-weight:500;
+  border-left:3px solid transparent;transition:all .15s;position:relative;
+}
+.nav-item:hover{color:#fff;background:#ffffff0a}
+.nav-item.active{color:#fff;border-left-color:var(--org);background:#ffffff0f}
+.nav-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{
+  margin-left:auto;background:var(--red);color:#fff;
+  font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:10px;
+  min-width:18px;text-align:center;
+}
+.sb-stats{margin:0 12px 16px;background:#ffffff0d;border-radius:8px;padding:13px 14px}
+.st-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:7px}
+.st-row:last-child{margin-bottom:0}
+.st-lbl{font-size:.72rem;color:#8a95b4}
+.st-val{font-family:'DM Mono',monospace;font-size:.8rem;color:#fff;font-weight:500}
+
+/* ═══ MOBILE OVERLAY ═══ */
+.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:150;backdrop-filter:blur(2px)}
+.overlay.show{display:block}
+
+/* ═══ MAIN ═══ */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* Mobile header */
+.mob-header{
+  display:none;background:var(--dark);padding:0 16px;height:52px;
+  align-items:center;gap:12px;flex-shrink:0;border-bottom:1px solid #ffffff12;
+}
+.mob-title{font-size:.95rem;font-weight:700;color:#fff;flex:1}
+.mob-burger{background:none;border:none;color:#8a95b4;font-size:20px;cursor:pointer;padding:4px;line-height:1}
+.mob-alert-dot{width:8px;height:8px;background:var(--red);border-radius:50%;flex-shrink:0;display:none}
+
+/* Pages container */
+.pages{flex:1;overflow-y:auto;overflow-x:hidden}
+.pages::-webkit-scrollbar{width:5px}
+.pages::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:3px}
+.page{display:none;padding:24px;min-height:100%}
+.page.active{display:block}
+.page-hdr{margin-bottom:22px}
+.page-hdr h2{font-size:1.3rem;font-weight:700;color:var(--txt)}
+.page-hdr p{color:var(--sub);font-size:.85rem;margin-top:3px}
+
+/* Mobile bottom nav */
+.mob-nav{
+  display:none;background:var(--surf);border-top:1px solid var(--bdr);
+  height:var(--mob-nav);flex-shrink:0;
+}
+.mob-nav-inner{display:flex;height:100%}
+.mob-nav-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;cursor:pointer;color:var(--muted);font-size:.65rem;font-weight:600;
+  border-top:2px solid transparent;transition:all .15s;position:relative;
+}
+.mob-nav-item.active{color:var(--org);border-top-color:var(--org)}
+.mob-nav-item .mni{font-size:18px;line-height:1}
+.mob-nav-badge{
+  position:absolute;top:8px;right:calc(50% - 18px);
+  background:var(--red);color:#fff;font-size:.6rem;font-weight:700;
+  padding:1px 5px;border-radius:10px;min-width:16px;text-align:center;
+}
+
+/* ═══ CARD ═══ */
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);box-shadow:var(--shd)}
+.card-hdr{
+  padding:13px 18px;border-bottom:1px solid var(--bdr);
+  display:flex;align-items:center;gap:8px;background:var(--surf2);
+  border-radius:var(--r) var(--r) 0 0;
+}
+.card-title{font-size:.75rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px}
+.card-body{padding:18px}
+
+/* ═══ FORMS ═══ */
+.fr{display:grid;gap:12px;margin-bottom:13px}
+.fr2{grid-template-columns:1fr 1fr}
+.fr3{grid-template-columns:1fr 1fr 1fr}
+.field{margin-bottom:13px}
+.field:last-child{margin-bottom:0}
+label{display:block;font-size:.75rem;font-weight:600;color:var(--sub);margin-bottom:4px;letter-spacing:.2px}
+input[type=text],input[type=number],select,textarea{
+  width:100%;padding:9px 12px;border:1.5px solid var(--bdr);border-radius:var(--r-sm);
+  background:var(--surf);color:var(--txt);font-family:'DM Sans',sans-serif;font-size:.88rem;
+  outline:none;transition:border-color .15s,box-shadow .15s;-webkit-appearance:none;
+}
+input[type=text]:focus,input[type=number]:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px #3b6cf715}
+input::placeholder{color:var(--muted)}
+input[type=color]{width:100%;height:40px;padding:3px 6px;cursor:pointer;border:1.5px solid var(--bdr);border-radius:var(--r-sm)}
+.hint{font-size:.72rem;color:var(--muted);margin-top:3px}
+hr.dv{border:none;border-top:1px solid var(--bdr);margin:14px 0}
+
+/* SLIDER GROUP */
+.slider-group{display:flex;gap:10px;align-items:center;margin-top:6px}
+.slider-wrap{flex:1;position:relative}
+input[type=range]{
+  -webkit-appearance:none;width:100%;height:4px;background:var(--bdr2);
+  border-radius:2px;outline:none;cursor:pointer;
+}
+input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--org);cursor:pointer;border:2px solid #fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.25);transition:transform .1s;
+}
+input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+input[type=range]::-moz-range-thumb{
+  width:18px;height:18px;border-radius:50%;background:var(--org);
+  cursor:pointer;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.25);
+}
+.slider-num{width:72px;flex-shrink:0}
+.slider-unit{font-size:.72rem;color:var(--muted);margin-left:2px;white-space:nowrap}
+
+/* TARGET PROFIT TOGGLE */
+.mode-toggle{display:flex;background:var(--surf2);border:1.5px solid var(--bdr);border-radius:var(--r-sm);overflow:hidden;margin-bottom:14px}
+.mode-btn{flex:1;padding:8px 12px;font-size:.8rem;font-weight:600;color:var(--sub);cursor:pointer;text-align:center;transition:all .15s;border:none;background:none}
+.mode-btn.active{background:var(--org);color:#fff}
+
+/* ═══ BUTTONS ═══ */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  padding:9px 18px;border-radius:var(--r-sm);border:none;
+  font-family:'DM Sans',sans-serif;font-size:.86rem;font-weight:600;
+  cursor:pointer;transition:all .15s;white-space:nowrap;
+}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#2d5de8;box-shadow:0 4px 12px #3b6cf740;transform:translateY(-1px)}
+.btn-org{background:var(--org);color:#fff}
+.btn-org:hover{background:#d45e1f;box-shadow:0 4px 12px #ea6c2b40;transform:translateY(-1px)}
+.btn-ghost{background:transparent;color:var(--sub);border:1.5px solid var(--bdr)}
+.btn-ghost:hover{border-color:var(--bdr2);color:var(--txt);background:var(--surf2)}
+.btn-green{background:var(--green);color:#fff}
+.btn-green:hover{background:#15803d}
+.btn-dng{background:transparent;color:var(--red);border:1.5px solid var(--red-lt);font-size:.8rem;padding:6px 12px}
+.btn-dng:hover{background:var(--red-bg)}
+.btn-sm{padding:6px 12px;font-size:.78rem}
+.btn-xs{padding:4px 9px;font-size:.72rem}
+.btn-full{width:100%}
+.btn-icon{width:36px;height:36px;padding:0;border-radius:var(--r-sm);font-size:16px}
+
+/* ═══ PILLS / BADGES ═══ */
+.pill{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:.72rem;font-weight:600;white-space:nowrap}
+.pill-g{background:var(--green-bg);color:var(--green)}
+.pill-y{background:var(--ylw-bg);color:var(--ylw)}
+.pill-r{background:var(--red-bg);color:var(--red)}
+.pill-b{background:var(--blue-bg);color:var(--blue)}
+.pill-o{background:var(--org-bg);color:var(--org)}
+
+/* ═══ FILAMENT CARDS ═══ */
+.fil-list{display:flex;flex-direction:column;gap:8px}
+.fil-scroll{max-height:320px;overflow-y:auto;padding-right:2px}
+.fil-scroll::-webkit-scrollbar{width:4px}
+.fil-scroll::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.fil-card{
+  display:flex;align-items:center;gap:12px;padding:10px 12px;
+  border:1.5px solid var(--bdr);border-radius:8px;cursor:pointer;
+  transition:all .15s;background:var(--surf);
+}
+.fil-card:hover{border-color:var(--blue);background:var(--blue-bg)}
+.fil-card.sel{border-color:var(--org);background:var(--org-bg);box-shadow:0 0 0 3px #ea6c2b14}
+.fil-card.low{border-color:var(--ylw)}
+.fil-card.empty{border-color:var(--red);opacity:.7}
+.fil-swatch{width:34px;height:34px;border-radius:7px;flex-shrink:0;border:2px solid rgba(0,0,0,.09);box-shadow:inset 0 1px 3px rgba(0,0,0,.15)}
+.fil-info{flex:1;min-width:0}
+.fil-name{font-weight:600;font-size:.88rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fil-meta{font-size:.73rem;color:var(--sub);margin-top:1px}
+.fil-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+
+/* Multi-filament rows in calculator */
+.mfil-row{
+  display:grid;grid-template-columns:1fr 90px 80px 28px;
+  gap:8px;align-items:center;padding:10px 12px;
+  background:var(--surf2);border:1.5px solid var(--bdr);border-radius:8px;margin-bottom:8px;
+}
+.mfil-cost{font-family:'DM Mono',monospace;font-size:.8rem;color:var(--sub);text-align:right;white-space:nowrap}
+
+/* ═══ CUSTOM COLOR DROPDOWN ═══ */
+.cdd{position:relative;flex:1;min-width:0;user-select:none}
+.cdd-trigger{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 11px;border:1.5px solid var(--bdr);border-radius:var(--r-sm);
+  background:var(--surf);cursor:pointer;transition:border-color .15s,box-shadow .15s;
+  min-height:38px;
+}
+.cdd-trigger:hover{border-color:var(--bdr2)}
+.cdd-trigger.open{border-color:var(--blue);box-shadow:0 0 0 3px #3b6cf715}
+.cdd-swatch{width:20px;height:20px;border-radius:5px;flex-shrink:0;border:1.5px solid rgba(0,0,0,.1);transition:background .2s}
+.cdd-label{font-size:.86rem;color:var(--txt);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cdd-label.placeholder{color:var(--muted)}
+.cdd-arrow{font-size:.65rem;color:var(--muted);flex-shrink:0;transition:transform .2s}
+.cdd-trigger.open .cdd-arrow{transform:rotate(180deg)}
+.cdd-menu{
+  position:absolute;top:calc(100% + 5px);left:0;right:0;z-index:999;
+  background:var(--surf);border:1.5px solid var(--bdr);border-radius:var(--r-sm);
+  box-shadow:var(--shd-lg);max-height:220px;overflow-y:auto;display:none;
+}
+.cdd-menu.open{display:block}
+.cdd-menu::-webkit-scrollbar{width:4px}
+.cdd-menu::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.cdd-option{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  cursor:pointer;transition:background .1s;border-bottom:1px solid var(--bdr);
+}
+.cdd-option:last-child{border-bottom:none}
+.cdd-option:hover{background:var(--blue-bg)}
+.cdd-option.selected{background:var(--org-bg)}
+.cdd-opt-swatch{width:22px;height:22px;border-radius:5px;flex-shrink:0;border:1.5px solid rgba(0,0,0,.1);box-shadow:inset 0 1px 3px rgba(0,0,0,.1)}
+.cdd-opt-info{flex:1;min-width:0}
+.cdd-opt-name{font-size:.85rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cdd-opt-meta{font-size:.72rem;color:var(--sub);margin-top:1px}
+.cdd-opt-stock{font-size:.72rem;font-family:'DM Mono',monospace;flex-shrink:0}
+.cdd-empty-opt{padding:12px;text-align:center;color:var(--muted);font-size:.83rem}
+
+/* ═══ KPI CARDS ═══ */
+.kpi-grid{display:grid;gap:12px}
+.kpi-4{grid-template-columns:repeat(4,1fr)}
+.kpi-3{grid-template-columns:repeat(3,1fr)}
+.kpi-2{grid-template-columns:repeat(2,1fr)}
+.kpi-card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--r);padding:16px 18px;box-shadow:var(--shd)}
+.kpi-lbl{font-size:.72rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.kpi-val{font-size:1.5rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1}
+.kpi-sub{font-size:.72rem;color:var(--muted);margin-top:4px}
+.c-blue{color:var(--blue)}.c-green{color:var(--green)}.c-red{color:var(--red)}.c-org{color:var(--org)}.c-ylw{color:var(--ylw)}
+
+/* ═══ RESULT HERO ═══ */
+.hero{
+  background:linear-gradient(135deg,var(--dark) 0%,var(--dark2) 100%);
+  border-radius:var(--r);padding:24px;color:#fff;text-align:center;position:relative;overflow:hidden;
+}
+.hero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at top right,#ea6c2b22,transparent 60%)}
+.hero-lbl{font-size:.72rem;color:#8a95b4;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;position:relative}
+.hero-val{font-size:2.8rem;font-weight:700;font-family:'DM Mono',monospace;line-height:1;position:relative}
+.hero-sub{font-size:.82rem;color:#8a95b4;margin-top:9px;position:relative}
+.hero-implied{font-size:.78rem;color:var(--org-lt,#fed7aa);margin-top:5px;position:relative;opacity:.9}
+
+/* ═══ CHART CONTAINERS ═══ */
+.chart-wrap{position:relative;width:100%;max-width:260px;margin:0 auto}
+.chart-wrap-full{position:relative;height:180px;width:100%}
+
+/* ═══ BREAKDOWN TABLE ═══ */
+.bdt{width:100%;border-collapse:collapse}
+.bdt th{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);padding:8px 13px;text-align:left;border-bottom:1px solid var(--bdr);background:var(--surf2)}
+.bdt th:last-child{text-align:right}
+.bdt td{padding:9px 13px;border-bottom:1px solid var(--bdr);font-size:.84rem}
+.bdt td:last-child{text-align:right;font-family:'DM Mono',monospace;font-size:.82rem}
+.bdt tr:last-child td{border-bottom:none}
+.bdt .tot{background:var(--surf2);font-weight:600}
+.bdt .fin{background:var(--dark)}
+.bdt .fin td{color:#fff}
+
+/* ═══ HISTORY TABLE ═══ */
+.ht{width:100%;border-collapse:collapse}
+.ht th{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--sub);padding:10px 14px;text-align:left;background:var(--surf2);border-bottom:1px solid var(--bdr)}
+.ht td{padding:10px 14px;border-bottom:1px solid var(--bdr);font-size:.84rem;vertical-align:middle}
+.ht tbody tr:hover{background:var(--surf2)}
+.ht tbody tr:last-child td{border-bottom:none}
+.mono{font-family:'DM Mono',monospace;font-size:.82rem}
+
+/* ═══ SHOPPING LIST ═══ */
+.shop-item{
+  display:flex;align-items:center;gap:12px;padding:12px 14px;
+  border:1.5px solid var(--bdr);border-radius:8px;background:var(--surf);
+  margin-bottom:8px;transition:all .15s;
+}
+.shop-item.done{opacity:.5;border-style:dashed}
+.shop-item.done .shop-name{text-decoration:line-through}
+.shop-check{width:20px;height:20px;border-radius:4px;border:2px solid var(--bdr2);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s}
+.shop-check.checked{background:var(--green);border-color:var(--green);color:#fff}
+.shop-info{flex:1;min-width:0}
+.shop-name{font-weight:600;font-size:.88rem}
+.shop-meta{font-size:.73rem;color:var(--sub);margin-top:1px}
+.shop-badge{flex-shrink:0}
+
+/* ═══ ALERTS ═══ */
+.alert{padding:11px 14px;border-radius:var(--r-sm);font-size:.83rem;display:flex;align-items:center;gap:9px;font-weight:500;margin-bottom:12px}
+.alert-s{background:var(--green-bg);color:var(--green);border:1px solid var(--green-lt)}
+.alert-e{background:var(--red-bg);color:var(--red);border:1px solid var(--red-lt)}
+.alert-i{background:var(--blue-bg);color:var(--blue);border:1px solid var(--blue-lt)}
+.alert-w{background:var(--ylw-bg);color:var(--ylw);border:1px solid #fde68a}
+
+/* NOTIFICATION BANNER */
+.notif-banner{
+  background:var(--red-bg);border-bottom:1px solid var(--red-lt);
+  padding:10px 24px;display:flex;align-items:center;gap:10px;font-size:.83rem;
+  color:var(--red);font-weight:500;display:none;flex-shrink:0;
+}
+
+/* ═══ EMPTY STATE ═══ */
+.empty{text-align:center;padding:36px 20px;color:var(--muted)}
+.empty-ico{font-size:30px;margin-bottom:10px;opacity:.4}
+.empty p{font-size:.85rem;line-height:1.7}
+
+/* ═══ PROGRESS BAR ═══ */
+.prog-lbl{display:flex;justify-content:space-between;font-size:.76rem;color:var(--sub);margin-bottom:5px;font-weight:600}
+.prog-bg{height:8px;background:var(--surf2);border-radius:4px;overflow:hidden;border:1px solid var(--bdr)}
+.prog-fill{height:100%;border-radius:4px;transition:width .4s ease}
+
+/* ═══ SETTINGS ═══ */
+.s-section{font-size:.73rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--sub);padding-bottom:8px;border-bottom:1px solid var(--bdr);margin-bottom:14px}
+
+/* ═══ LAYOUT HELPERS ═══ */
+.col{display:flex;flex-direction:column;gap:16px}
+.calc-grid{display:grid;grid-template-columns:400px 1fr;gap:0;height:calc(100vh - 0px)}
+.lager-grid{display:grid;grid-template-columns:340px 1fr;gap:20px;align-items:start}
+.row{display:flex;gap:10px;align-items:center}
+
+/* ═══ COMPACT INPUT PANEL ═══ */
+.input-panel{height:100%;overflow-y:auto;padding:20px;border-right:1px solid var(--bdr);background:var(--surf);display:flex;flex-direction:column;gap:0}
+.input-panel::-webkit-scrollbar{width:4px}
+.input-panel::-webkit-scrollbar-thumb{background:var(--bdr2);border-radius:2px}
+.inp-section{margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid var(--bdr)}
+.inp-section:last-child{margin-bottom:0;padding-bottom:0;border-bottom:none}
+.inp-section-hdr{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.inp-section-num{width:20px;height:20px;border-radius:50%;background:var(--dark);color:#fff;font-size:.65rem;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.inp-section-title{font-size:.74rem;font-weight:700;color:var(--sub);text-transform:uppercase;letter-spacing:.5px}
+.ifield{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.ifield:last-child{margin-bottom:0}
+.ifield label{font-size:.77rem;font-weight:600;color:var(--sub);min-width:118px;flex-shrink:0;margin-bottom:0}
+.ifield input,.ifield select{flex:1;padding:6px 10px;font-size:.84rem}
+.ifield .unit{font-size:.73rem;color:var(--muted);flex-shrink:0;min-width:30px}
+.islider{display:flex;align-items:center;gap:8px;margin-bottom:7px}
+.islider:last-child{margin-bottom:0}
+.islider label{font-size:.77rem;font-weight:600;color:var(--sub);min-width:118px;flex-shrink:0;margin-bottom:0}
+.islider .sl-wrap{flex:1;display:flex;align-items:center;gap:7px}
+.islider input[type=range]{flex:1}
+.islider .sl-num{width:56px;padding:5px 8px;font-size:.82rem;text-align:right}
+.islider .unit{font-size:.73rem;color:var(--muted);min-width:26px;flex-shrink:0}
+
+/* ═══ RESULT PANEL ═══ */
+.result-panel{height:100%;overflow-y:auto;background:linear-gradient(160deg,#1a1f2e 0%,#1e2540 60%,#212d48 100%);display:flex;flex-direction:column;position:relative}
+.result-panel::-webkit-scrollbar{width:4px}
+.result-panel::-webkit-scrollbar-thumb{background:#ffffff18;border-radius:2px}
+.result-panel::before{content:\'\';position:absolute;top:-80px;right:-80px;width:360px;height:360px;background:radial-gradient(circle,#ea6c2b20 0%,transparent 65%);pointer-events:none;z-index:0}
+.result-panel::after{content:\'\';position:absolute;bottom:-60px;left:-60px;width:260px;height:260px;background:radial-gradient(circle,#3b6cf718 0%,transparent 65%);pointer-events:none;z-index:0}
+.rp-inner{padding:22px;position:relative;z-index:1;display:flex;flex-direction:column;gap:14px;min-height:100%}
+.rp-placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.rp-placeholder .ph-icon{font-size:44px;margin-bottom:14px;opacity:.18}
+.rp-placeholder p{font-size:.86rem;line-height:1.8;color:#4a5568}
+.price-hero{text-align:center;padding:18px 16px 14px}
+.price-hero-badge{display:inline-block;padding:3px 12px;border-radius:20px;background:#ea6c2b1a;border:1px solid #ea6c2b33;color:#fb923c;font-size:.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+.price-hero-val{font-size:3.6rem;font-weight:700;font-family:\'DM Mono\',monospace;color:#fff;line-height:1;letter-spacing:-2px;text-shadow:0 0 50px #ea6c2b33,0 0 100px #ea6c2b18}
+.price-hero-cur{font-size:1.6rem;font-weight:400;color:#fb923c;vertical-align:super}
+.price-hero-sub{font-size:.8rem;color:#4a5568;margin-top:8px}
+.price-hero-implied{font-size:.76rem;color:#ea6c2b88;margin-top:4px}
+.kpi-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:#ffffff08;border-radius:10px;overflow:hidden;border:1px solid #ffffff0c}
+.kpi-strip-item{padding:11px 8px;text-align:center;background:#0a0e1a66}
+.kpi-strip-lbl{font-size:.62rem;font-weight:700;color:#4a5568;text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.kpi-strip-val{font-size:1rem;font-weight:700;font-family:\'DM Mono\',monospace;line-height:1}
+.kpi-strip-sub{font-size:.62rem;color:#374151;margin-top:2px}
+.rp-section-title{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#374151;margin-bottom:8px}
+.breakdown-rows{display:flex;flex-direction:column;gap:5px}
+.bd-row{display:flex;align-items:center;gap:9px;padding:8px 11px;background:#ffffff05;border-radius:7px;border:1px solid #ffffff07}
+.bd-row-icon{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.bd-row-label{flex:1;font-size:.8rem;color:#718096}
+.bd-row-bar-wrap{width:60px;flex-shrink:0}
+.bd-row-bar-bg{height:3px;background:#ffffff0d;border-radius:2px;overflow:hidden}
+.bd-row-bar-fill{height:100%;border-radius:2px;transition:width .4s ease}
+.bd-row-val{font-family:\'DM Mono\',monospace;font-size:.8rem;color:#cbd5e0;min-width:62px;text-align:right;flex-shrink:0}
+.bd-total-row{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:#ffffff08;border-radius:8px;border:1px solid #ffffff12;margin-top:2px}
+.bd-total-lbl{font-size:.8rem;color:#718096;font-weight:600}
+.bd-total-val{font-family:\'DM Mono\',monospace;font-size:.9rem;font-weight:700}
+.profit-meter{background:#ffffff05;border-radius:8px;padding:12px;border:1px solid #ffffff08}
+.profit-meter-hdr{display:flex;justify-content:space-between;font-size:.7rem;font-weight:700;margin-bottom:7px}
+.profit-meter-bar-bg{height:8px;background:#ffffff0d;border-radius:4px;overflow:hidden}
+.profit-meter-fill{height:100%;border-radius:4px;transition:width .5s cubic-bezier(.4,0,.2,1)}
+.rp-save{background:#ffffff05;border-radius:8px;padding:13px;border:1px solid #ffffff08}
+.rp-save label{color:#4a5568}
+.rp-save input[type=text]{background:#ffffff08;border:1.5px solid #ffffff12;color:#e2e8f0;border-radius:7px}
+.rp-save input[type=text]::placeholder{color:#2d3748}
+.rp-save input[type=text]:focus{border-color:#ea6c2b55;box-shadow:0 0 0 3px #ea6c2b12}
+.rv-green{color:#4ade80}.rv-red{color:#f87171}.rv-blue{color:#60a5fa}.rv-org{color:#fb923c}.rv-muted{color:#4a5568}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:768px){
+  .sidebar{position:fixed;left:0;top:0;bottom:0;transform:translateX(-100%)}
+  .sidebar.open{transform:translateX(0)}
+  .mob-header{display:flex}
+  .mob-nav{display:flex}
+  .mob-nav-inner{display:flex;width:100%}
+  .page{padding:16px;padding-bottom:calc(var(--mob-nav) + 16px)}
+  .calc-grid,.lager-grid{grid-template-columns:1fr}
+  .kpi-4{grid-template-columns:1fr 1fr}
+  .fr3{grid-template-columns:1fr 1fr}
+  .fr2{grid-template-columns:1fr 1fr}
+}
+@media(max-width:480px){
+  .kpi-4{grid-template-columns:1fr 1fr}
+  .fr2,.fr3{grid-template-columns:1fr}
+  .mfil-row{grid-template-columns:1fr 80px 28px}
+  .mfil-cost{display:none}
+}
+
+/* ─── COLOR SWATCHES ─── */
+.cswatch {
+  width: 26px; height: 26px; border-radius: 6px;
+  cursor: pointer; border: 2px solid transparent;
+  transition: transform .1s, border-color .1s;
+  flex-shrink: 0;
+}
+.cswatch:hover { transform: scale(1.15); border-color: var(--txt) !important; }
+.cswatch.active { border-color: var(--txt) !important; transform: scale(1.1); box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--txt); }
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sb-brand">
+    <div class="sb-logo">⬡</div>
+    <div class="sb-title">3D Print<br>Kalkulator</div>
+    <div class="sb-sub">Kosten · Filament · Gewinn</div>
+  </div>
+  <nav class="sb-nav">
+    <div class="nav-item active" onclick="go('kalkulator')"><span class="nav-icon">🔢</span>Kalkulator</div>
+    <div class="nav-item" onclick="go('filamente')"><span class="nav-icon">🧵</span>Filamente</div>
+    <div class="nav-item" id="nav-einkauf" onclick="go('einkauf')"><span class="nav-icon">🛒</span>Einkaufsliste<span class="nav-badge" id="nb-einkauf" style="display:none">0</span></div>
+    <div class="nav-item" onclick="go('verlauf')"><span class="nav-icon">📋</span>Verlauf</div>
+    <div class="nav-item" onclick="go('einstellungen')"><span class="nav-icon">⚙️</span>Einstellungen</div>
+  </nav>
+  <div class="sb-stats">
+    <div class="st-row"><span class="st-lbl">Spulen</span><span class="st-val" id="sb-sp">0</span></div>
+    <div class="st-row"><span class="st-lbl">Lagerwert</span><span class="st-val" id="sb-wt">—</span></div>
+    <div class="st-row"><span class="st-lbl">Aufträge</span><span class="st-val" id="sb-au">0</span></div>
+    <div class="st-row"><span class="st-lbl">Gesamtgewinn</span><span class="st-val" id="sb-gw">—</span></div>
+  </div>
+</aside>
+
+<div class="overlay" id="overlay" onclick="closeSB()"></div>
+
+<div class="main">
+  <!-- Mobile header -->
+  <header class="mob-header">
+    <button class="mob-burger" onclick="toggleSB()">☰</button>
+    <span class="mob-title">⬡ 3D Print Kalkulator</span>
+    <div class="mob-alert-dot" id="mob-dot"></div>
+  </header>
+
+  <!-- Low stock banner -->
+  <div class="notif-banner" id="notif-banner">
+    <span>🔔</span>
+    <span id="notif-text">Filament fast leer!</span>
+    <button class="btn btn-dng btn-sm" style="margin-left:auto;padding:4px 10px;font-size:.72rem" onclick="go('einkauf');document.getElementById('notif-banner').style.display='none'">Einkaufsliste öffnen</button>
+    <button onclick="document.getElementById('notif-banner').style.display='none'" style="background:none;border:none;cursor:pointer;color:var(--red);font-size:16px;padding:0 4px">×</button>
+  </div>
+
+  <div class="pages">
+
+  <!-- ══════════════ KALKULATOR ══════════════ -->
+  <div class="page active" id="page-kalkulator" style="padding:0;height:calc(100vh - 52px)">
+    <div class="calc-grid" style="height:100%">
+
+      <!-- ── LEFT: Compact Inputs ── -->
+      <div class="input-panel">
+        <div style="margin-bottom:16px;padding-bottom:14px;border-bottom:2px solid var(--bdr)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+            <div>
+              <div style="font-size:1rem;font-weight:700;color:var(--txt)">Auftrag kalkulieren</div>
+              <div style="font-size:.75rem;color:var(--muted);margin-top:2px">Alle Felder → Ergebnis live rechts</div>
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="resetCalc()" title="Zurücksetzen" style="font-size:.75rem">↺ Reset</button>
+          </div>
+          <label id="gcode-btn" style="display:flex;align-items:center;gap:10px;padding:10px 13px;background:linear-gradient(135deg,#0f172a,#1e293b);border:1.5px solid #334155;border-radius:8px;cursor:pointer;transition:border-color .15s;user-select:none" onmouseover="this.style.borderColor='#ea6c2b'" onmouseout="this.style.borderColor='#334155'">
+            <div style="width:32px;height:32px;background:#ea6c2b22;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">⬡</div>
+            <div style="flex:1">
+              <div style="font-size:.82rem;font-weight:700;color:#e2e8f0">G-Code importieren</div>
+              <div style="font-size:.72rem;color:#475569;margin-top:1px">Zeit, Gramm &amp; Farbe automatisch auslesen · .gcode</div>
+            </div>
+            <div style="font-size:.75rem;color:#ea6c2b;font-weight:700;flex-shrink:0">IMPORT ↑</div>
+            <input type="file" accept=".gcode,.gco,.gc,.bgcode,.nc,.txt" style="display:none" onchange="importGcode(event)">
+          </label>
+          <div id="gcode-result" style="display:none;margin-top:8px"></div>
+        </div>
+
+        <!-- ① Filament -->
+        <div class="inp-section">
+          <div class="inp-section-hdr">
+            <div class="inp-section-num">1</div>
+            <span class="inp-section-title">Filamente</span>
+            <button class="btn btn-primary btn-sm" style="margin-left:auto;padding:4px 10px;font-size:.75rem" onclick="addMFilRow()">+ Hinzufügen</button>
+          </div>
+          <div id="mfil-rows">
+            <div class="empty" id="mfil-empty" style="padding:16px 10px">
+              <div style="font-size:22px;margin-bottom:6px;opacity:.3">🧵</div>
+              <p style="font-size:.8rem">Klicke <b>+ Hinzufügen</b></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ② Druckdaten -->
+        <div class="inp-section">
+          <div class="inp-section-hdr">
+            <div class="inp-section-num">2</div>
+            <span class="inp-section-title">Druckdaten</span>
+          </div>
+          <div class="islider">
+            <label>Druckdauer</label>
+            <div class="sl-wrap">
+              <input type="range" id="s-h" min="0" max="48" step="0.5" value="0" oninput="syncS('h')">
+            </div>
+            <input type="number" class="sl-num" id="n-h" placeholder="0" step="0.5" min="0" oninput="syncN('h')" style="width:56px;padding:5px 8px;font-size:.82rem">
+            <span class="unit" style="font-size:.73rem;color:var(--muted);min-width:24px">h</span>
+          </div>
+          <div class="ifield">
+            <label>Strompreis</label>
+            <input type="number" id="n-kwh" placeholder="0.35" step="0.01" min="0" oninput="doCalc()">
+            <span class="unit" style="font-size:.73rem;color:var(--muted);min-width:44px">€/kWh</span>
+          </div>
+          <div class="ifield">
+            <label>Druckerleistung</label>
+            <input type="number" id="n-watt" placeholder="120" step="10" min="0" oninput="doCalc()">
+            <span class="unit" style="font-size:.73rem;color:var(--muted);min-width:24px">W</span>
+          </div>
+        </div>
+
+        <!-- ③ Kalkulation -->
+        <div class="inp-section">
+          <div class="inp-section-hdr">
+            <div class="inp-section-num">3</div>
+            <span class="inp-section-title">Kalkulation</span>
+          </div>
+          <div class="mode-toggle" style="margin-bottom:10px">
+            <button class="mode-btn active" id="mode-aufschlag" onclick="setMode('aufschlag')">% Aufschlag</button>
+            <button class="mode-btn" id="mode-zielgewinn" onclick="setMode('zielgewinn')">€ Zielgewinn</button>
+          </div>
+          <div id="mode-aufschlag-area">
+            <div class="islider">
+              <label>Aufschlag</label>
+              <div class="sl-wrap">
+                <input type="range" id="s-m" min="0" max="300" step="5" value="50" oninput="syncS('m')">
+              </div>
+              <input type="number" class="sl-num" id="n-m" value="50" step="5" min="0" oninput="syncN('m')" style="width:56px;padding:5px 8px;font-size:.82rem">
+              <span class="unit" style="font-size:.73rem;color:var(--muted);min-width:24px">%</span>
+            </div>
+          </div>
+          <div id="mode-zielgewinn-area" style="display:none">
+            <div class="islider">
+              <label>Zielgewinn</label>
+              <div class="sl-wrap">
+                <input type="range" id="s-tg" min="0" max="200" step="0.5" value="10" oninput="syncS('tg')">
+              </div>
+              <input type="number" class="sl-num" id="n-tg" value="10" step="0.5" min="0" oninput="syncN('tg')" style="width:56px;padding:5px 8px;font-size:.82rem">
+              <span class="unit" style="font-size:.73rem;color:var(--muted);min-width:24px">€</span>
+            </div>
+          </div>
+          <div class="ifield" style="margin-top:8px">
+            <label>Arbeitszeit</label>
+            <input type="number" id="n-wm" placeholder="0" step="5" min="0" oninput="doCalc()">
+            <span class="unit" style="font-size:.73rem;color:var(--muted);min-width:28px">Min</span>
+          </div>
+          <div class="ifield">
+            <label>Stundenlohn</label>
+            <input type="number" id="n-hl" placeholder="15" step="0.5" min="0" oninput="doCalc()">
+            <span class="unit" style="font-size:.73rem;color:var(--muted);min-width:28px">€/h</span>
+          </div>
+          <div class="ifield">
+            <label>Sonstiges</label>
+            <input type="number" id="n-ext" value="0" step="0.1" min="0" oninput="doCalc()">
+            <span class="unit" style="font-size:.73rem;color:var(--muted);min-width:28px">€</span>
+          </div>
+        </div>
+
+        <!-- ④ Speichern -->
+        <div class="inp-section" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--bdr);border-bottom:none;margin-bottom:0;padding-bottom:0">
+          <div class="inp-section-hdr" style="margin-bottom:10px">
+            <div class="inp-section-num">4</div>
+            <span class="inp-section-title">Auftrag speichern</span>
+          </div>
+          <div class="ifield">
+            <label>Auftragsname</label>
+            <input type="text" id="n-jname" placeholder="Vase – Twist Groß">
+          </div>
+          <div class="ifield">
+            <label>Kunde</label>
+            <input type="text" id="n-jclient" placeholder="optional">
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="btn btn-org" style="flex:1;font-size:.84rem" onclick="saveJob()">💾 Speichern</button>
+            <button class="btn btn-primary" style="flex:1;font-size:.84rem" onclick="deductStock()">📦 Bestand abziehen</button>
+          </div>
+          <div id="r-msg" style="margin-top:8px;display:none"></div>
+        </div>
+      </div>
+
+      <!-- ── RIGHT: Result Panel ── -->
+      <div class="result-panel">
+        <div class="rp-inner">
+
+          <!-- Placeholder -->
+          <div class="rp-placeholder" id="r-ph">
+            <div class="ph-icon">🧮</div>
+            <p>Filament hinzufügen<br>und Druckdaten eingeben —<br>Ergebnis erscheint hier sofort</p>
+          </div>
+
+          <!-- Result content -->
+          <div id="r-area" style="display:none;flex-direction:column;gap:14px">
+
+            <!-- Price hero -->
+            <!-- Price warning -->
+          <div id="r-price-warn" style="display:none;background:var(--ylw-bg);border:1.5px solid #fde68a;border-radius:7px;padding:9px 13px;font-size:.8rem;color:var(--ylw);font-weight:600;margin-bottom:-6px"></div>
+          <!-- Hero price -->
+          <div class="price-hero">
+              <div class="price-hero-badge">Empfohlener Verkaufspreis</div>
+              <div class="price-hero-val"><span id="r-sell-num">—</span><span class="price-hero-cur" id="r-sell-cur">€</span></div>
+              <div class="price-hero-sub" id="r-hero-sub">—</div>
+              <div class="price-hero-implied" id="r-implied" style="display:none">—</div>
+            </div>
+
+            <!-- KPI strip -->
+            <div class="kpi-strip">
+              <div class="kpi-strip-item">
+                <div class="kpi-strip-lbl">Kosten</div>
+                <div class="kpi-strip-val rv-red" id="r-cost">—</div>
+                <div class="kpi-strip-sub">gesamt</div>
+              </div>
+              <div class="kpi-strip-item">
+                <div class="kpi-strip-lbl">Gewinn</div>
+                <div class="kpi-strip-val rv-green" id="r-profit">—</div>
+                <div class="kpi-strip-sub" id="r-profit-sub">—</div>
+              </div>
+              <div class="kpi-strip-item">
+                <div class="kpi-strip-lbl">Strom</div>
+                <div class="kpi-strip-val rv-blue" id="r-kwh">—</div>
+                <div class="kpi-strip-sub" id="r-kwh-sub">—</div>
+              </div>
+              <div class="kpi-strip-item">
+                <div class="kpi-strip-lbl">€ / Std</div>
+                <div class="kpi-strip-val rv-org" id="r-ph-cost">—</div>
+                <div class="kpi-strip-sub">Kosten/h</div>
+              </div>
+            </div>
+
+            <!-- Profit meter -->
+            <div class="profit-meter">
+              <div class="profit-meter-hdr">
+                <span style="color:#4a5568">Kostenanteil am Preis</span>
+                <span id="r-cost-pct" style="color:#718096">—</span>
+              </div>
+              <div class="profit-meter-bar-bg">
+                <div class="profit-meter-fill" id="r-prog" style="width:0%"></div>
+              </div>
+            </div>
+
+            <!-- Breakdown -->
+            <div>
+              <div class="rp-section-title">Kostenaufschlüsselung</div>
+              <div class="breakdown-rows" id="r-brows"></div>
+              <div class="bd-total-row" style="margin-top:6px">
+                <span class="bd-total-lbl">Gesamtkosten</span>
+                <span class="bd-total-val rv-red" id="r-tot-disp">—</span>
+              </div>
+              <div class="bd-total-row" style="margin-top:4px;background:#4ade8010;border-color:#4ade8022">
+                <span class="bd-total-lbl" style="color:#4ade8088">→ Verkaufspreis</span>
+                <span class="bd-total-val rv-green" id="r-sell-disp">—</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════ FILAMENTE ══════════════ -->
+  <div class="page" id="page-filamente">
+    <div class="page-hdr">
+      <h2>Filament Lager</h2>
+      <p>Spulen verwalten · Farben, Temperaturen &amp; Preise</p>
+    </div>
+    <div class="lager-grid">
+      <!-- Add form -->
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Neues Filament</span></div>
+        <div class="card-body">
+          <!-- Vorlage laden -->
+          <div class="field" style="margin-bottom:12px">
+            <label>🗂 Vorlage laden</label>
+            <div style="display:flex;gap:8px">
+              <select id="f-template" style="flex:1" onchange="loadFilTemplate()">
+                <option value="">— Vorlage wählen —</option>
+                <optgroup label="⭐ Meine Vorlagen" id="f-tpl-user-group">
+                </optgroup>
+                <optgroup label="📦 Standard-Vorlagen">
+                  <option value="tpl_esun_pla">eSUN PLA+ (Standard)</option>
+                  <option value="tpl_esun_petg">eSUN PETG (Standard)</option>
+                  <option value="tpl_bambu_pla">Bambu PLA Basic</option>
+                  <option value="tpl_bambu_petg">Bambu PETG HF</option>
+                  <option value="tpl_polymaker_pla">Polymaker PLA Pro</option>
+                  <option value="tpl_hatchbox_abs">Hatchbox ABS</option>
+                  <option value="tpl_sainsmart_tpu">SainSmart TPU</option>
+                </optgroup>
+              </select>
+              <button class="btn btn-ghost btn-sm" onclick="saveFilTemplate()" title="Aktuelle Eingabe als Vorlage speichern">💾 Speichern</button>
+            </div>
+          </div>
+
+          <div class="fr fr2">
+            <div><label>Name / Marke *</label><input type="text" id="f-name" placeholder="z.B. eSUN PLA+"></div>
+            <div><label>Material</label><select id="f-type"><option>PLA</option><option>PLA+</option><option>PETG</option><option>ABS</option><option>TPU</option><option>ASA</option><option>Nylon</option><option>Resin</option><option>Sonstiges</option></select></div>
+          </div>
+          <div class="fr fr2" style="margin-bottom:12px">
+            <div><label>Marke</label><input type="text" id="f-brand" placeholder="z.B. eSUN" list="brand-list">
+              <datalist id="brand-list"><option>eSUN</option><option>Bambu Lab</option><option>Polymaker</option><option>Hatchbox</option><option>Prusament</option><option>Sunlu</option><option>Creality</option><option>Fiberlogy</option><option>SainSmart</option></datalist>
+            </div>
+            <div>
+              <label>Farbname <span id="f-colorname-auto" style="font-size:.7rem;color:var(--blue);margin-left:4px"></span></label>
+              <input type="text" id="f-colorname" placeholder="wird automatisch erkannt…">
+            </div>
+          </div>
+          <!-- Color swatches -->
+          <div class="field">
+            <label>Farbe wählen</label>
+            <div id="color-swatches" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px">
+              <div id="f-color-preview" style="width:32px;height:32px;border-radius:7px;border:2px solid var(--bdr);flex-shrink:0;background:#2196f3"></div>
+              <input type="color" id="f-color" value="#2196f3" style="width:44px;height:32px;padding:2px;border-radius:6px;border:1.5px solid var(--bdr);cursor:pointer;flex-shrink:0" oninput="onColorPick(this.value)" title="Eigene Farbe">
+              <span style="font-size:.75rem;color:var(--muted)">oder eigene Farbe wählen</span>
+            </div>
+          </div>
+          <hr class="dv">
+          <div class="fr fr3">
+            <div><label>Spule (g)</label><input type="number" id="f-weight" value="1000" min="1" oninput="fSyncCount()"></div>
+            <div><label>Preis / Spule (€)</label><input type="number" id="f-price" placeholder="25.00" step="0.01" min="0"></div>
+            <div>
+              <label>Anzahl Spulen</label>
+              <div style="display:flex;align-items:center;gap:6px">
+                <button type="button" onclick="fCountAdj(-1)" style="width:32px;height:36px;border:1.5px solid var(--bdr);border-radius:6px;background:var(--surf2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0">−</button>
+                <input type="number" id="f-count" value="1" min="1" max="99" step="1" style="text-align:center;font-weight:700" oninput="fSyncCount()">
+                <button type="button" onclick="fCountAdj(1)"  style="width:32px;height:36px;border:1.5px solid var(--bdr);border-radius:6px;background:var(--surf2);cursor:pointer;font-size:16px;line-height:1;flex-shrink:0">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="fr fr2">
+            <div>
+              <label>Restmenge gesamt (g)</label>
+              <input type="number" id="f-rem" placeholder="1000" min="0">
+              <div class="hint" id="f-rem-hint">= 1× 1000g Spule</div>
+            </div>
+            <div>
+              <label>Gesamtwert</label>
+              <input type="text" id="f-total-val" readonly style="background:var(--surf2);color:var(--sub);font-weight:600">
+              <div class="hint">Preis × Anzahl</div>
+            </div>
+          </div>
+          <div class="fr fr3">
+            <div><label>Drucktemp (°C)</label><input type="number" id="f-temp" value="200" min="100" max="400"></div>
+            <div><label>Betttemp (°C)</label><input type="number" id="f-bed" value="60" min="0" max="150"></div>
+            <div><label>Ø mm</label><select id="f-dia"><option value="1.75">1.75</option><option value="2.85">2.85</option><option value="3.0">3.0</option></select></div>
+          </div>
+          <div class="field">
+            <label>Notizen</label>
+            <input type="text" id="f-notes" placeholder="z.B. Für Außenteile geeignet">
+          </div>
+          <button class="btn btn-primary btn-full" onclick="addFil()">+ Filament speichern</button>
+          <div id="f-alert" style="margin-top:10px;display:none"></div>
+        </div>
+      </div>
+
+      <!-- List -->
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Lagerbestand</span>
+          <span id="lager-count" style="margin-left:auto;font-size:.78rem;color:var(--sub)">0 Spulen</span>
+        </div>
+        <!-- Filter & Search bar -->
+        <div style="padding:10px 12px;border-bottom:1px solid var(--bdr);display:flex;gap:8px;flex-wrap:wrap;background:var(--surf2)">
+          <input type="text" id="lager-search" placeholder="🔍 Suche…" style="flex:1;min-width:120px;padding:6px 10px;font-size:.82rem" oninput="renderLager()">
+          <select id="lager-filter-brand" style="font-size:.8rem;padding:6px 8px" onchange="renderLager()"><option value="">Alle Marken</option></select>
+          <select id="lager-filter-type"  style="font-size:.8rem;padding:6px 8px" onchange="renderLager()"><option value="">Alle Typen</option></select>
+        </div>
+        <div style="padding:12px;max-height:600px;overflow-y:auto"><div id="lager-list"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ EINKAUFSLISTE ══════════════ -->
+  <div class="page" id="page-einkauf">
+    <div class="page-hdr">
+      <h2>🛒 Einkaufsliste</h2>
+      <p>Automatisch befüllt wenn Filament niedrig/leer ist</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 340px;gap:20px;align-items:start">
+      <div class="col">
+        <div class="card">
+          <div class="card-hdr">
+            <span class="card-title">Einkaufsliste</span>
+            <div style="margin-left:auto;display:flex;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="refreshShopList()">↻ Aktualisieren</button>
+              <button class="btn btn-dng btn-sm" onclick="clearChecked()">🗑 Erledigte löschen</button>
+            </div>
+          </div>
+          <div style="padding:14px" id="shop-list-wrap"></div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Manuell hinzufügen</span></div>
+          <div class="card-body">
+            <div class="field"><label>Artikel</label><input type="text" id="sh-name" placeholder="z.B. PETG Schwarz 1kg"></div>
+            <div class="fr fr2">
+              <div class="field" style="margin-bottom:0"><label>Menge</label><input type="text" id="sh-qty" placeholder="1x Spule"></div>
+              <div class="field" style="margin-bottom:0"><label>Priorität</label><select id="sh-prio"><option value="hoch">🔴 Hoch</option><option value="mittel" selected>🟡 Mittel</option><option value="niedrig">🟢 Niedrig</option></select></div>
+            </div>
+            <button class="btn btn-primary btn-full" style="margin-top:13px" onclick="addShopItem()">+ Zur Liste hinzufügen</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Schwellenwert</span></div>
+          <div class="card-body">
+            <label>Warnung unter (% der Spule)</label>
+            <div class="slider-group">
+              <div class="slider-wrap"><input type="range" id="s-thresh" min="5" max="50" step="5" value="15" oninput="document.getElementById('n-thresh').value=this.value;saveThresh()"></div>
+              <input type="number" class="slider-num" id="n-thresh" value="15" min="5" max="50" oninput="document.getElementById('s-thresh').value=this.value;saveThresh()">
+              <span class="slider-unit">%</span>
+            </div>
+            <div class="hint" style="margin-top:8px">Filamente unter diesem Wert werden automatisch zur Einkaufsliste hinzugefügt.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ VERLAUF ══════════════ -->
+  <div class="page" id="page-verlauf">
+    <div class="page-hdr">
+      <h2>Auftragsverlauf</h2>
+      <p>Gespeicherte Jobs · Statistiken · Gewinnverlauf</p>
+    </div>
+    <div class="kpi-grid kpi-4" style="margin-bottom:20px">
+      <div class="kpi-card"><div class="kpi-lbl">Aufträge</div><div class="kpi-val c-blue" id="hk-n">0</div><div class="kpi-sub">gesamt</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Umsatz</div><div class="kpi-val c-org" id="hk-rev">—</div><div class="kpi-sub">alle Jobs</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Gesamtkosten</div><div class="kpi-val c-red" id="hk-cost">—</div><div class="kpi-sub">Materialkosten</div></div>
+      <div class="kpi-card"><div class="kpi-lbl">Gesamtgewinn</div><div class="kpi-val c-green" id="hk-profit">—</div><div class="kpi-sub" id="hk-margin">—</div></div>
+    </div>
+
+    <!-- Profit Chart -->
+    <div class="card" style="margin-bottom:20px" id="hist-chart-card">
+      <div class="card-hdr"><span class="card-title">Gewinnverlauf</span></div>
+      <div class="card-body" style="padding:14px 18px">
+        <div class="chart-wrap-full"><canvas id="profitChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="card">
+      <div class="card-hdr">
+        <span class="card-title">Alle Aufträge</span>
+        <button class="btn btn-dng btn-sm" style="margin-left:auto" onclick="clearHist()">🗑 Alle löschen</button>
+      </div>
+      <!-- Search + Filter -->
+      <div style="padding:10px 12px;border-bottom:1px solid var(--bdr);display:flex;gap:8px;flex-wrap:wrap;background:var(--surf2)">
+        <input type="text" id="hist-search" placeholder="🔍 Auftrag suchen…" style="flex:1;min-width:140px;padding:6px 10px;font-size:.82rem" oninput="renderHistPage()">
+        <select id="hist-filter-status" style="font-size:.8rem;padding:6px 8px" onchange="renderHistPage()">
+          <option value="">Alle Status</option>
+          <option value="offen">🟡 Offen</option>
+          <option value="fertig">🟢 Fertig</option>
+          <option value="bezahlt">✅ Bezahlt</option>
+        </select>
+        <select id="hist-sort" style="font-size:.8rem;padding:6px 8px" onchange="renderHistPage()">
+          <option value="newest">Neueste zuerst</option>
+          <option value="oldest">Älteste zuerst</option>
+          <option value="profit">Höchster Gewinn</option>
+          <option value="cost">Höchste Kosten</option>
+        </select>
+      </div>
+      <div id="hist-empty" class="empty" style="padding:36px"><div class="empty-ico">📋</div><p>Noch keine gespeicherten Aufträge.</p></div>
+      <div id="hist-table-wrap" style="display:none;overflow-x:auto">
+        <table class="ht">
+          <thead><tr><th>#</th><th>Auftrag</th><th>Kunde</th><th>Datum</th><th>Filament</th><th>g</th><th>h</th><th>Kosten</th><th>Preis</th><th>Gewinn</th><th>Status</th><th></th></tr></thead>
+          <tbody id="hist-body"></tbody>
+        </table>
+      </div>
+      <div id="hist-summary" style="display:none;padding:10px 14px;border-top:1px solid var(--bdr);font-size:.78rem;color:var(--sub);background:var(--surf2)"></div>
+    </div>
+  </div>
+
+  <!-- ══════════════ EINSTELLUNGEN ══════════════ -->
+  <div class="page" id="page-einstellungen">
+    <div class="page-hdr"><h2>Einstellungen</h2><p>Standardwerte &amp; App-Konfiguration</p></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+      <div class="col">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Standardwerte</span></div>
+          <div class="card-body">
+            <div class="s-section">Strom &amp; Drucker</div>
+            <div class="fr fr2">
+              <div class="field"><label>Strompreis (€/kWh)</label><input type="number" id="s-kwh" step="0.01" value="0.35" oninput="saveSett()"></div>
+              <div class="field"><label>Druckerleistung (W)</label><input type="number" id="s-watt" step="10" value="120" oninput="saveSett()"></div>
+            </div>
+            <div class="field"><label>Druckername</label><input type="text" id="s-printer" placeholder="z.B. Bambu X1C" oninput="saveSett()"></div>
+            <hr class="dv">
+            <div class="s-section">Kalkulation</div>
+            <div class="fr fr2">
+              <div class="field"><label>Stundenlohn (€/h)</label><input type="number" id="s-hourly" step="0.5" value="15" oninput="saveSett()"></div>
+              <div class="field"><label>Standard Aufschlag (%)</label><input type="number" id="s-margin" step="5" value="50" oninput="saveSett()"></div>
+            </div>
+            <div class="fr fr2">
+              <div class="field"><label>Mindestpreis (€)</label><input type="number" id="s-minprice" step="0.5" value="0" min="0" oninput="saveSett()"><div class="hint">0 = kein Mindestpreis</div></div>
+            </div>
+            <div class="fr fr2">
+              <div class="field"><label>Währung</label><select id="s-cur" onchange="saveSett()"><option value="€">€ Euro</option><option value="$">$ Dollar</option><option value="CHF">CHF</option><option value="£">£ Pfund</option></select></div>
+              <div class="field"><label>Modus</label><select id="s-mode" onchange="saveSett()"><option value="aufschlag">% Aufschlag</option><option value="zielgewinn">€ Zielgewinn</option></select></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Temperaturkorrektur</span></div>
+          <div class="card-body">
+            <div class="alert alert-i" style="margin-bottom:14px">ℹ️ Höhere Temperaturen = mehr Heizstrom. Wird automatisch zur Kalkulation addiert.</div>
+            <div class="fr fr2">
+              <div class="field"><label>Hotend (W)</label><input type="number" id="s-hotend" step="5" value="40" oninput="saveSett()"><div class="hint">Typisch 30–60 W</div></div>
+              <div class="field"><label>Bett (W)</label><input type="number" id="s-bed" step="10" value="120" oninput="saveSett()"><div class="hint">Typisch 100–300 W</div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="col">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">🔔 Benachrichtigungen</span></div>
+          <div class="card-body">
+            <p style="font-size:.85rem;color:var(--sub);margin-bottom:14px">Erhalte Browser-Benachrichtigungen wenn Filament fast leer ist.</p>
+            <div id="notif-status" class="alert alert-i" style="margin-bottom:14px">Status wird geladen…</div>
+            <button class="btn btn-primary btn-full" id="notif-btn" onclick="requestNotif()">🔔 Benachrichtigungen aktivieren</button>
+            <div style="margin-top:12px" class="fr fr2">
+              <div><label>Warnung unter (g)</label><input type="number" id="s-warn-g" value="100" step="10" oninput="saveSett()"><div class="hint">Absolut in Gramm</div></div>
+              <div><label>Warnung unter (%)</label><input type="number" id="s-warn-pct" value="15" step="5" oninput="saveSett()"><div class="hint">% der Spule</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Daten</span></div>
+          <div class="card-body">
+            <p style="font-size:.83rem;color:var(--sub);margin-bottom:14px">Alle Filamente, Aufträge &amp; Einstellungen sichern.</p>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" onclick="exportD()">⬇ Export JSON</button>
+              <label class="btn btn-ghost btn-sm" style="cursor:pointer">⬆ Import JSON<input type="file" accept=".json" style="display:none" onchange="importD(event)"></label>
+              <button class="btn btn-dng btn-sm" onclick="if(confirm('Alle Daten löschen?')){localStorage.clear();location.reload()}">🗑 Alles löschen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  </div><!-- /pages -->
+
+  <!-- Mobile bottom nav -->
+  <nav class="mob-nav">
+    <div class="mob-nav-inner">
+      <div class="mob-nav-item active" onclick="go('kalkulator')"><div class="mni">🔢</div><span>Rechner</span></div>
+      <div class="mob-nav-item" onclick="go('filamente')"><div class="mni">🧵</div><span>Lager</span></div>
+      <div class="mob-nav-item" onclick="go('einkauf')" id="mn-einkauf"><div class="mni">🛒</div><span>Einkauf</span><span class="mob-nav-badge" id="mnb-einkauf" style="display:none">0</span></div>
+      <div class="mob-nav-item" onclick="go('verlauf')"><div class="mni">📋</div><span>Verlauf</span></div>
+      <div class="mob-nav-item" onclick="go('einstellungen')"><div class="mni">⚙️</div><span>Einst.</span></div>
+    </div>
+  </nav>
+</div><!-- /main -->
+</div><!-- /app -->
+
+<script>
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+let fils   = JSON.parse(localStorage.getItem('fils')  || '[]');
+let hist   = JSON.parse(localStorage.getItem('hist')  || '[]');
+let sett   = JSON.parse(localStorage.getItem('sett')  || '{}');
+let shopL  = JSON.parse(localStorage.getItem('shopL') || '[]');
+let _idbReady = false;
+let _idb = null;
+let calcMode = 'aufschlag';
+let mFilRows = [];   // [{uid, filId, grams}]
+let calcRes  = null;
+let donutCh  = null;
+let profitCh = null;
+
+const CUR  = () => sett.currency || '€';
+const f2   = n  => (+n).toFixed(2);
+const f3   = n  => (+n).toFixed(3);
+const gv   = id => parseFloat(document.getElementById(id)?.value) || 0;
+const sv = (k,v) => {
+  localStorage.setItem(k, JSON.stringify(v));
+  idbWrite(k, JSON.stringify(v));  // mirror to IndexedDB backup
+};
+const uid  = () => Date.now() + Math.random().toString(36).slice(2);
+
+// ═══════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════
+function init() {
+  const def = {kwh:.35,watt:120,hourly:15,margin:50,currency:'€',printer:'',hotend:40,bed:120,warnG:100,warnPct:15,thresh:15};
+  sett = {...def,...sett};
+  loadSettingsUI();
+  renderLager();
+  renderHistPage();
+  refreshShopList();
+  updateSB();
+  checkLowStock();
+  initNotifStatus();
+  idbInit();
+  refreshTemplateSelect();
+  buildSwatches();  // start IndexedDB backup system
+  // restore slider defaults from settings
+  document.getElementById('n-m').value  = sett.margin;
+  document.getElementById('s-m').value  = sett.margin;
+  document.getElementById('n-kwh').placeholder  = sett.kwh;
+  document.getElementById('n-watt').placeholder = sett.watt;
+  document.getElementById('n-hl').placeholder   = sett.hourly;
+}
+
+function loadSettingsUI() {
+  const m = {kwh:'s-kwh',watt:'s-watt',hourly:'s-hourly',margin:'s-margin',minprice:'s-minprice',currency:'s-cur',printer:'s-printer',hotend:'s-hotend',bed:'s-bed',warnG:'s-warn-g',warnPct:'s-warn-pct'};
+  Object.entries(m).forEach(([k,id]) => { const el=document.getElementById(id); if(el) el.value=sett[k]; });
+  if(document.getElementById('n-thresh')) document.getElementById('n-thresh').value = sett.thresh || 15;
+  if(document.getElementById('s-thresh')) document.getElementById('s-thresh').value = sett.thresh || 15;
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+function go(id) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.mob-nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  const pages=['kalkulator','filamente','einkauf','verlauf','einstellungen'];
+  const idx = pages.indexOf(id);
+  if(idx>=0) {
+    document.querySelectorAll('.nav-item')[idx]?.classList.add('active');
+    document.querySelectorAll('.mob-nav-item')[idx]?.classList.add('active');
+  }
+  if(id==='verlauf') renderHistPage();
+  if(id==='einkauf') refreshShopList();
+  closeSB();
+}
+
+function toggleSB() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('overlay').classList.toggle('show'); }
+function closeSB()   { document.getElementById('sidebar').classList.remove('open'); document.getElementById('overlay').classList.remove('show'); }
+
+// ═══════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════
+function saveSett() {
+  sett = {
+    minprice: gv('s-minprice') || 0,
+    kwh:    gv('s-kwh')    || .35,
+    watt:   gv('s-watt')   || 120,
+    hourly: gv('s-hourly') || 15,
+    margin: gv('s-margin') || 50,
+    currency: document.getElementById('s-cur').value,
+    printer:  document.getElementById('s-printer').value,
+    hotend:   gv('s-hotend') || 40,
+    bed:      gv('s-bed')    || 120,
+    warnG:    gv('s-warn-g') || 100,
+    warnPct:  gv('s-warn-pct') || 15,
+    thresh:   gv('n-thresh') || 15,
+  };
+  sv('sett', sett);
+  updateSB();
+}
+
+function saveThresh() {
+  sett.thresh = gv('n-thresh') || 15;
+  sv('sett', sett);
+  refreshShopList();
+}
+
+// ═══════════════════════════════════════════════
+// SLIDERS
+// ═══════════════════════════════════════════════
+function syncS(key) {
+  const v = document.getElementById('s-'+key).value;
+  document.getElementById('n-'+key).value = v;
+  doCalc();
+}
+function syncN(key) {
+  const v = document.getElementById('n-'+key).value;
+  const slider = document.getElementById('s-'+key);
+  if(slider) slider.value = v;
+  doCalc();
+}
+
+// ═══════════════════════════════════════════════
+// CALC MODE
+// ═══════════════════════════════════════════════
+function setMode(mode) {
+  calcMode = mode;
+  document.getElementById('mode-aufschlag').classList.toggle('active', mode==='aufschlag');
+  document.getElementById('mode-zielgewinn').classList.toggle('active', mode==='zielgewinn');
+  document.getElementById('mode-aufschlag-area').style.display = mode==='aufschlag'?'block':'none';
+  document.getElementById('mode-zielgewinn-area').style.display = mode==='zielgewinn'?'block':'none';
+  doCalc();
+}
+
+// ═══════════════════════════════════════════════
+// MULTI-FILAMENT ROWS
+// ═══════════════════════════════════════════════
+function addMFilRow() {
+  const rowId = uid();
+  mFilRows.push({uid:rowId, filId:null, grams:0});
+  renderMFilRows();
+}
+
+function removeMFilRow(rowId) {
+  mFilRows = mFilRows.filter(r => r.uid !== rowId);
+  renderMFilRows();
+  doCalc();
+}
+
+function updateMFilCost(rowId) {
+  const row = mFilRows.find(r=>r.uid===rowId);
+  if(!row) return;
+  const fil = fils.find(f=>f.id===row.filId);
+  const cost = fil && fil.price>0 ? (fil.price/fil.weight)*row.grams : 0;
+  const el = document.getElementById('mf-cost-'+rowId);
+  if(el) el.textContent = fil ? `${f2(cost)} ${CUR()}` : '—';
+}
+
+function renderMFilRows() {
+  const container = document.getElementById('mfil-rows');
+  const empty = document.getElementById('mfil-empty');
+  if(!mFilRows.length) {
+    container.innerHTML='';
+    if(empty){ container.appendChild(empty); empty.style.display=''; }
+    return;
+  }
+  if(empty) empty.style.display='none';
+
+  container.innerHTML = mFilRows.map(row=>{
+    const fil = fils.find(f=>f.id===row.filId);
+    const cost = fil&&fil.price>0 ? f2((fil.price/fil.weight)*(row.grams||0)) : null;
+    const pct = fil ? Math.round(fil.remaining/fil.weight*100) : 0;
+    const stockColor = fil ? (pct>25?'var(--green)':pct>5?'var(--ylw)':'var(--red)') : 'var(--muted)';
+
+    // Build dropdown options HTML
+    const opts = fils.length
+      ? fils.map(f=>{
+          const fp = Math.round(f.remaining/f.weight*100);
+          const sc = fp>25?'var(--green)':fp>5?'var(--ylw)':'var(--red)';
+          return `<div class="cdd-option${row.filId===f.id?' selected':''}" onclick="cddSelect('${row.uid}',${f.id})">
+            <div class="cdd-opt-swatch" style="background:${f.color}"></div>
+            <div class="cdd-opt-info">
+              <div class="cdd-opt-name">${f.name}</div>
+              <div class="cdd-opt-meta">${f.type} · ${f.colorName} · ${f.temp}°C</div>
+            </div>
+            <span class="cdd-opt-stock" style="color:${sc}">${f.remaining}g</span>
+          </div>`;
+        }).join('')
+      : `<div class="cdd-empty-opt">Noch keine Filamente vorhanden</div>`;
+
+    return `<div class="mfil-row" id="mfil-row-${row.uid}">
+      <!-- Custom color dropdown -->
+      <div class="cdd" id="cdd-${row.uid}">
+        <div class="cdd-trigger" id="cdd-trig-${row.uid}" onclick="cddToggle('${row.uid}')">
+          <div class="cdd-swatch" id="cdd-sw-${row.uid}" style="background:${fil?fil.color:'transparent'};${!fil?'border:1.5px dashed var(--bdr2)':''}"></div>
+          <span class="cdd-label${fil?'':' placeholder'}" id="cdd-lbl-${row.uid}">${fil?`${fil.name} <span style="font-weight:400;color:var(--sub);font-size:.78rem">${fil.type}</span>`:'— Filament wählen —'}</span>
+          <span class="cdd-arrow">▼</span>
+        </div>
+        <div class="cdd-menu" id="cdd-menu-${row.uid}">${opts}</div>
+      </div>
+      <!-- Grams input -->
+      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+        <input type="number" id="mf-g-${row.uid}" placeholder="0" min="0" step="1"
+          value="${row.grams||''}" style="width:70px"
+          oninput="mFilRows.find(r=>r.uid==='${row.uid}').grams=parseFloat(this.value)||0;updateMFilCost('${row.uid}');doCalc()">
+        <span style="font-size:.75rem;color:var(--muted)">g</span>
+      </div>
+      <!-- Cost display -->
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex-shrink:0;min-width:70px">
+        <span class="mfil-cost" id="mf-cost-${row.uid}">${cost?cost+' '+CUR():'—'}</span>
+        ${fil?`<span style="font-size:.68rem;color:${stockColor};font-family:'DM Mono',monospace">${pct}% übrig</span>`:''}
+      </div>
+      <!-- Delete -->
+      <button class="btn btn-dng btn-xs" onclick="removeMFilRow('${row.uid}')" title="Entfernen"
+        style="flex-shrink:0;width:28px;height:28px;padding:0;font-size:13px;border-radius:6px">✕</button>
+    </div>`;
+  }).join('');
+}
+
+// Toggle custom dropdown open/close
+function cddToggle(uid) {
+  const trigger = document.getElementById('cdd-trig-'+uid);
+  const menu    = document.getElementById('cdd-menu-'+uid);
+  const isOpen  = menu.classList.contains('open');
+  // Close all others first
+  document.querySelectorAll('.cdd-menu.open').forEach(m=>m.classList.remove('open'));
+  document.querySelectorAll('.cdd-trigger.open').forEach(t=>t.classList.remove('open'));
+  if(!isOpen) { menu.classList.add('open'); trigger.classList.add('open'); }
+}
+
+// Select a filament from the custom dropdown
+function cddSelect(uid, filId) {
+  const row = mFilRows.find(r=>r.uid===uid);
+  if(!row) return;
+  row.filId = filId;
+  const fil = fils.find(f=>f.id===filId);
+
+  // Update trigger visuals
+  const sw  = document.getElementById('cdd-sw-'+uid);
+  const lbl = document.getElementById('cdd-lbl-'+uid);
+  if(sw)  { sw.style.background=fil.color; sw.style.border='1.5px solid rgba(0,0,0,.1)'; }
+  if(lbl) { lbl.className='cdd-label'; lbl.innerHTML=`${fil.name} <span style="font-weight:400;color:var(--sub);font-size:.78rem">${fil.type}</span>`; }
+
+  // Update selected state in options
+  const menu = document.getElementById('cdd-menu-'+uid);
+  if(menu) menu.querySelectorAll('.cdd-option').forEach(opt=>opt.classList.remove('selected'));
+  const chosen = menu?.querySelector(`.cdd-option[onclick*="cddSelect('${uid}',${filId})"]`);
+  if(chosen) chosen.classList.add('selected');
+
+  // Close menu
+  document.getElementById('cdd-menu-'+uid)?.classList.remove('open');
+  document.getElementById('cdd-trig-'+uid)?.classList.remove('open');
+
+  updateMFilCost(uid);
+  doCalc();
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', e=>{
+  if(!e.target.closest('.cdd')) {
+    document.querySelectorAll('.cdd-menu.open').forEach(m=>m.classList.remove('open'));
+    document.querySelectorAll('.cdd-trigger.open').forEach(t=>t.classList.remove('open'));
+  }
+});
+
+// ═══════════════════════════════════════════════
+// CALCULATOR
+// ═══════════════════════════════════════════════
+function doCalc() {
+  // Update mfil row grams from inputs (filId already set via cddSelect)
+  mFilRows.forEach(row => {
+    const gmEl= document.getElementById('mf-g-'+row.uid);
+    if(gmEl) row.grams = parseFloat(gmEl.value) || 0;
+    updateMFilCost(row.uid);
+  });
+
+  const hours  = gv('n-h');
+  const kwh    = gv('n-kwh')  || sett.kwh;
+  const watt   = gv('n-watt') || sett.watt;
+  const workMin= gv('n-wm');
+  const hourly = gv('n-hl')   || sett.hourly;
+  const extra  = gv('n-ext');
+  const C = CUR();
+
+  // Check we have something
+  const hasRows = mFilRows.some(r=>r.filId && r.grams>0);
+  if(!hasRows && !hours) {
+    document.getElementById('r-ph').style.display='flex';
+    document.getElementById('r-area').style.display='none';
+    return;
+  }
+
+  // Filament cost (sum)
+  let filCost = 0;
+  let tempCost = 0;
+  mFilRows.forEach(row => {
+    const fil = fils.find(f=>f.id===row.filId);
+    if(fil) {
+      if(fil.price>0) filCost += (fil.price/fil.weight)*row.grams;
+      // Temp correction per filament (averaged if multiple)
+      const hDuty = Math.min(.9,(fil.temp-150)/250);
+      const bDuty = fil.bedTemp>0 ? Math.min(.8,fil.bedTemp/150) : 0;
+      const tW    = sett.hotend*hDuty + sett.bed*bDuty;
+      tempCost += (tW/1000)*hours*kwh / mFilRows.filter(r=>r.filId).length;
+    }
+  });
+
+  const kwhU  = (watt/1000)*hours;
+  const elC   = kwhU*kwh;
+  const labC  = (workMin/60)*hourly;
+  const tot   = filCost + elC + tempCost + labC + extra;
+
+  let sell, profit, margin, impliedPct;
+  if(calcMode==='aufschlag') {
+    margin = gv('n-m') || sett.margin;
+    sell   = tot*(1+margin/100);
+    profit = sell - tot;
+  } else {
+    profit = gv('n-tg');
+    sell   = tot + profit;
+    margin = tot > 0 ? (profit/tot*100) : 0;
+    impliedPct = margin.toFixed(1);
+  }
+
+  calcRes = {hours,filCost,elC,tempCost,labC,extra,tot,sell,profit,margin,kwhU};
+
+  // Show result
+  document.getElementById('r-ph').style.display='none';
+  document.getElementById('r-area').style.display='flex';
+
+  // Check for missing filament prices
+  const missingPrices = mFilRows.filter(r=>r.filId&&r.grams>0).map(r=>{
+    const f=fils.find(x=>x.id===r.filId);
+    return f&&(!f.price||f.price===0)?f.name:null;
+  }).filter(Boolean);
+  const warnEl = document.getElementById('r-price-warn');
+  if(warnEl) {
+    if(missingPrices.length>0){
+      warnEl.innerHTML='⚠ Kein Preis für: '+missingPrices.join(', ')+' — Materialkosten werden nicht berechnet!';
+      warnEl.style.display='block';
+    } else { warnEl.style.display='none'; }
+  }
+
+  // Hero price (split number + currency)
+  document.getElementById('r-sell-num').textContent = f2(sell);
+  document.getElementById('r-sell-cur').textContent = C;
+  document.getElementById('r-hero-sub').textContent = `Kosten ${f2(tot)} ${C}  ·  Gewinn ${f2(profit)} ${C}`;
+  // Minimum price warning
+  const minP = sett.minprice||0;
+  const heroEl = document.getElementById('r-sell-num');
+  if(heroEl) heroEl.style.color = (minP>0 && sell<minP) ? '#f87171' : '#fff';
+  const impliedEl = document.getElementById('r-implied');
+  if(minP>0 && sell<minP && impliedEl) {
+    impliedEl.style.display='block';
+    impliedEl.style.color='#fca5a5';
+    impliedEl.textContent = '⚠ Unter Mindestpreis! Minimum: '+f2(minP)+' '+C;
+  }
+  const implied = document.getElementById('r-implied');
+  if(calcMode==='zielgewinn') { implied.style.display='block'; implied.textContent = `Entspricht ${margin.toFixed(1)}% Aufschlag`; }
+  else implied.style.display='none';
+
+  // KPI strip
+  document.getElementById('r-cost').textContent        = `${f2(tot)} ${C}`;
+  document.getElementById('r-profit').textContent      = `${f2(profit)} ${C}`;
+  document.getElementById('r-profit-sub').textContent  = `${margin.toFixed(1)}% Marge`;
+  document.getElementById('r-kwh').textContent         = `${kwhU.toFixed(3)} kWh`;
+  document.getElementById('r-kwh-sub').textContent     = `${watt}W·${hours}h`;
+  const phC = hours>0 ? tot/hours : tot;
+  document.getElementById('r-ph-cost').textContent     = `${f2(phC)} ${C}`;
+
+  // Profit meter
+  const cPct = sell>0 ? (tot/sell*100) : 0;
+  const bar = document.getElementById('r-prog');
+  bar.style.width = Math.min(100,cPct)+'%';
+  bar.style.background = cPct>80?'#f87171':cPct>60?'#fbbf24':'#4ade80';
+  document.getElementById('r-cost-pct').textContent = `${cPct.toFixed(1)}% Kosten  /  ${(100-cPct).toFixed(1)}% Gewinn`;
+
+  // Breakdown rows
+  const rows=[];
+  if(filCost>0)  rows.push({ico:'🧵',lbl:'Filament',val:filCost,clr:'#60a5fa'});
+  rows.push({ico:'⚡',lbl:'Strom',val:elC,clr:'#22d3ee'});
+  if(tempCost>0) rows.push({ico:'🌡',lbl:'Temp.zuschlag',val:tempCost,clr:'#fbbf24'});
+  if(labC>0)     rows.push({ico:'👤',lbl:'Arbeitszeit',val:labC,clr:'#a78bfa'});
+  if(extra>0)    rows.push({ico:'📦',lbl:'Sonstiges',val:extra,clr:'#94a3b8'});
+
+  const maxVal = Math.max(...rows.map(r=>r.val), 0.001);
+  document.getElementById('r-brows').innerHTML = rows.map(r=>{
+    const sh   = tot>0 ? (r.val/tot*100).toFixed(0) : 0;
+    const barW = (r.val/maxVal*100).toFixed(1);
+    return `<div class="bd-row">
+      <div class="bd-row-icon" style="background:${r.clr}18">${r.ico}</div>
+      <span class="bd-row-label">${r.lbl}</span>
+      <div class="bd-row-bar-wrap">
+        <div class="bd-row-bar-bg"><div class="bd-row-bar-fill" style="width:${barW}%;background:${r.clr}"></div></div>
+      </div>
+      <span style="font-size:.68rem;color:#374151;min-width:28px;text-align:right;flex-shrink:0">${sh}%</span>
+      <span class="bd-row-val">${f3(r.val)} ${C}</span>
+    </div>`;
+  }).join('');
+
+  document.getElementById('r-tot-disp').textContent  = `${f2(tot)} ${C}`;
+  document.getElementById('r-sell-disp').textContent = `${f2(sell)} ${C}`;
+}
+
+function updateDonut(rows, profit, C) {
+  const labels = [...rows.map(r=>r[1]), 'Gewinn'];
+  const data   = [...rows.map(r=>r[2]), Math.max(0,profit)];
+  const colors = [...rows.map(r=>r[3]), '#16a34a'];
+
+  if(donutCh) donutCh.destroy();
+  const ctx = document.getElementById('donutChart');
+  if(!ctx) return;
+  donutCh = new Chart(ctx, {
+    type:'doughnut',
+    data:{ labels, datasets:[{ data, backgroundColor:colors, borderWidth:2, borderColor:'#fff', hoverOffset:4 }]},
+    options:{
+      responsive:true, cutout:'68%',
+      plugins:{
+        legend:{ position:'bottom', labels:{ font:{size:11,family:'DM Sans'}, padding:10, usePointStyle:true, pointStyle:'circle' }},
+        tooltip:{ callbacks:{ label: ctx => ` ${f2(ctx.raw)} ${C} (${((ctx.raw/ctx.dataset.data.reduce((a,b)=>a+b,0))*100).toFixed(1)}%)` }}
+      }
+    }
+  });
+}
+
+function resetCalc() {
+  mFilRows=[];
+  const empty = document.getElementById('mfil-empty');
+  document.getElementById('mfil-rows').innerHTML='';
+  if(empty) { document.getElementById('mfil-rows').appendChild(empty); empty.style.display=''; }
+  ['n-h','n-kwh','n-watt','n-wm','n-hl','n-jname','n-jclient'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('n-ext').value='0';
+  document.getElementById('n-m').value=sett.margin;
+  document.getElementById('s-m').value=sett.margin;
+  document.getElementById('s-h').value=0;
+  document.getElementById('n-tg').value=10;
+  document.getElementById('s-tg').value=10;
+  calcRes=null;
+  document.getElementById('r-ph').style.display='flex';
+  document.getElementById('r-area').style.display='none';
+}
+
+// ═══════════════════════════════════════════════
+// SAVE JOB
+// ═══════════════════════════════════════════════
+function saveJob() {
+  if(!calcRes) return;
+  const name   = document.getElementById('n-jname').value.trim() || `Auftrag #${hist.length+1}`;
+  const client = document.getElementById('n-jclient').value.trim() || '';
+  const C = CUR();
+  const jobFils = mFilRows.filter(r=>r.filId&&r.grams>0).map(r=>{
+    const fil=fils.find(f=>f.id===r.filId);
+    return {name:fil?.name||'?',color:fil?.color||'#888',grams:r.grams,filId:r.filId};
+  });
+  const totalG = jobFils.reduce((a,r)=>a+r.grams,0);
+  hist.unshift({id:Date.now(),name,client,date:new Date().toLocaleDateString('de-DE'),
+    fils:jobFils, totalG, h:calcRes.hours,
+    cost:calcRes.tot, price:calcRes.sell, profit:calcRes.profit, margin:calcRes.margin, cur:C,
+    stockDeducted:false});
+  sv('hist',hist);
+  showAlert('r-msg','✓ Auftrag gespeichert (Bestand unverändert)','s');
+  updateSB();
+}
+
+function deductStock() {
+  if(!calcRes) return;
+  const jobFils = mFilRows.filter(r=>r.filId&&r.grams>0).map(r=>{
+    const fil=fils.find(f=>f.id===r.filId);
+    return {name:fil?.name||'?',color:fil?.color||'#888',grams:r.grams,filId:r.filId};
+  });
+  if(!jobFils.length){showAlert('r-msg','⚠ Kein Filament ausgewählt','e');return;}
+  jobFils.forEach(jf=>{
+    const fil=fils.find(f=>f.id===jf.filId);
+    if(fil) fil.remaining=Math.max(0,fil.remaining-jf.grams);
+  });
+  sv('fils',fils);
+  showAlert('r-msg','📦 Bestand abgezogen: '+jobFils.map(j=>j.grams+'g '+j.name).join(', '),'i');
+  renderLager(); refreshShopList(); updateSB(); checkLowStock();
+}
+
+// ═══════════════════════════════════════════════
+// FILAMENT CRUD
+// ═══════════════════════════════════════════════
+function stockPill(rem,w) {
+  const p=rem/w;
+  if(p>.25)return['pill-g','✔ Gut'];
+  if(p>.05)return['pill-y','⚠ Niedrig'];
+  return['pill-r','✕ Leer'];
+}
+
+function addFil() {
+  const name = document.getElementById('f-name').value.trim();
+  if(!name){showAlert('f-alert','Name ist pflichtfeld','e');return;}
+  const w     = parseFloat(document.getElementById('f-weight').value)||1000;
+  const count = parseInt(document.getElementById('f-count').value)||1;
+  const rem   = parseFloat(document.getElementById('f-rem').value);
+  const totalRem = isNaN(rem) ? w*count : rem;
+  fils.push({id:Date.now(),name,
+    type:document.getElementById('f-type').value,
+    brand:document.getElementById('f-brand').value.trim(),
+    color:document.getElementById('f-color').value,
+    colorName:document.getElementById('f-colorname').value.trim()||'Unbenannt',
+    weight:w, count:count,
+    price:parseFloat(document.getElementById('f-price').value)||0,
+    remaining:totalRem,
+    temp:parseFloat(document.getElementById('f-temp').value)||200,
+    bedTemp:parseFloat(document.getElementById('f-bed').value)||60,
+    dia:parseFloat(document.getElementById('f-dia').value)||1.75,
+    notes:document.getElementById('f-notes').value.trim()
+  });
+  sv('fils',fils);
+  ['f-name','f-brand','f-colorname','f-price','f-rem','f-notes'].forEach(id=>document.getElementById(id).value='');
+  const cn=document.getElementById('f-colorname'); if(cn) delete cn.dataset.typed;
+  document.getElementById('f-color').value='#2196f3';
+  const prev=document.getElementById('f-color-preview'); if(prev) prev.style.background='#2196f3';
+  document.querySelectorAll('.cswatch').forEach(s=>s.classList.remove('active'));
+  document.getElementById('f-count').value='1';
+  document.getElementById('f-rem').removeAttribute('data-touched');
+  fSyncCount();
+  showAlert('f-alert','Filament gespeichert ✓','s');
+  renderLager(); updateSB(); refreshShopList(); checkLowStock();
+}
+
+function delFil(id) {
+  if(!confirm('Filament löschen?'))return;
+  fils=fils.filter(f=>f.id!==id);
+  sv('fils',fils); renderLager(); updateSB(); refreshShopList();
+}
+
+function editRem(id) {
+  const fil = fils.find(f=>f.id===id);
+  if(!fil)return;
+  const val = prompt(`Restmenge für "${fil.name}" eingeben (g):`, fil.remaining);
+  if(val===null)return;
+  fil.remaining=Math.max(0,parseFloat(val)||0);
+  sv('fils',fils); renderLager(); refreshShopList(); checkLowStock(); updateSB();
+}
+
+function renderLager() {
+  const list = document.getElementById('lager-list');
+  const totalSpulen = fils.reduce((a,f)=>a+(f.count||1),0);
+  document.getElementById('lager-count').textContent = fils.length+' Sorte'+(fils.length!==1?'n':'')+' · '+totalSpulen+' Spule'+(totalSpulen!==1?'n':'');
+
+  if(!fils.length){list.innerHTML='<div class="empty"><div class="empty-ico">🧵</div><p>Noch keine Filamente.</p></div>';return;}
+
+  // Get active filter
+  const activeBrand = document.getElementById('lager-filter-brand')?.value || '';
+  const activeType  = document.getElementById('lager-filter-type')?.value  || '';
+  const searchQ     = (document.getElementById('lager-search')?.value||'').toLowerCase();
+
+  let filtered = fils.filter(f=>{
+    if(activeBrand && (f.brand||'') !== activeBrand) return false;
+    if(activeType  && f.type !== activeType) return false;
+    if(searchQ && !f.name.toLowerCase().includes(searchQ) && !(f.brand||'').toLowerCase().includes(searchQ) && !f.colorName.toLowerCase().includes(searchQ)) return false;
+    return true;
+  });
+
+  // Group by brand
+  const brands = {};
+  filtered.forEach(f=>{
+    const b = f.brand || '—';
+    if(!brands[b]) brands[b]=[];
+    brands[b].push(f);
+  });
+
+  let html = '';
+  Object.keys(brands).sort().forEach(brand=>{
+    const brandFils = brands[brand];
+    // Brand header
+    html += `<div style="font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:10px 4px 5px;border-bottom:1px solid var(--bdr);margin-bottom:6px">${brand==='—'?'Ohne Marke':brand} <span style="font-weight:400">(${brandFils.length})</span></div>`;
+    html += '<div class="fil-list" style="margin-bottom:12px">';
+    html += brandFils.map(f=>{
+      const pct=Math.round(f.remaining/f.weight*100);
+      const ppg=f.weight>0?(f.price/f.weight).toFixed(3):'—';
+      const [sc,sl]=stockPill(f.remaining,f.weight);
+      const isLow=f.remaining/f.weight<(sett.warnPct||15)/100;
+      return`<div class="fil-card${isLow?' low':''}" style="cursor:default">
+        <div class="fil-swatch" style="background:${f.color}"></div>
+        <div class="fil-info">
+          <div class="fil-name">${f.name} <span style="font-weight:400;font-size:.72rem;color:var(--sub)">${f.type} · ∅${f.dia}mm</span>${(f.count&&f.count>1)?'<span style="background:var(--blue-bg);color:var(--blue);font-size:.7rem;font-weight:700;padding:1px 7px;border-radius:10px;margin-left:4px">'+f.count+'× Spulen</span>':''}</div>
+          <div class="fil-meta">${f.colorName} · ${f.temp}°C / ${f.bedTemp}°C Bett · ${ppg}${CUR()}/g</div>
+          ${f.notes?`<div class="fil-meta" style="color:var(--muted)">${f.notes}</div>`:''}
+        </div>
+        <div class="fil-right">
+          <span class="pill ${sc}">${sl}</span>
+          <span class="mono" style="color:var(--sub);font-size:.73rem">${f.remaining}g / ${pct}%</span>
+          <div style="display:flex;gap:5px">
+            <button class="btn btn-ghost btn-xs" onclick="useAsTemplate(${f.id})" title="Als Vorlage verwenden">📋</button>
+            <button class="btn btn-ghost btn-xs" onclick="editRem(${f.id})" title="Restmenge anpassen">✏</button>
+            <button class="btn btn-dng btn-xs" onclick="delFil(${f.id})">✕</button>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+    html += '</div>';
+  });
+
+  list.innerHTML = html;
+  updateFilterOptions();
+}
+
+function updateFilterOptions() {
+  const brandSel = document.getElementById('lager-filter-brand');
+  const typeSel  = document.getElementById('lager-filter-type');
+  if(!brandSel||!typeSel) return;
+  const curBrand = brandSel.value, curType = typeSel.value;
+  const brands = [...new Set(fils.map(f=>f.brand||'').filter(Boolean))].sort();
+  const types  = [...new Set(fils.map(f=>f.type))].sort();
+  brandSel.innerHTML = '<option value="">Alle Marken</option>' + brands.map(b=>`<option${curBrand===b?' selected':''}>${b}</option>`).join('');
+  typeSel.innerHTML  = '<option value="">Alle Typen</option>'  + types.map(t=>`<option${curType===t?' selected':''}>${t}</option>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+// SHOPPING LIST
+// ═══════════════════════════════════════════════
+function refreshShopList() {
+  const thresh = (sett.thresh||15)/100;
+  // Auto-add low-stock filaments not already in list
+  fils.forEach(f=>{
+    const pct=f.remaining/f.weight;
+    if(pct<thresh) {
+      const exists=shopL.find(s=>s.filId===f.id&&!s.checked);
+      if(!exists) {
+        shopL.push({uid:uid(),filId:f.id,name:f.name,color:f.color,qty:'1 Spule ('+f.weight+'g)',prio:pct<.05?'hoch':'mittel',auto:true,checked:false});
+      }
+    }
+  });
+  sv('shopL',shopL);
+  renderShopList();
+  updateBadge();
+}
+
+function renderShopList() {
+  const wrap = document.getElementById('shop-list-wrap');
+  if(!wrap) return;
+  if(!shopL.length){wrap.innerHTML='<div class="empty"><div class="empty-ico">🛒</div><p>Einkaufsliste ist leer!<br>Super – alle Filamente haben genug Bestand.</p></div>';return;}
+  const prioCls={hoch:'pill-r',mittel:'pill-y',niedrig:'pill-g'};
+  const prioLbl={hoch:'🔴 Hoch',mittel:'🟡 Mittel',niedrig:'🟢 Niedrig'};
+  wrap.innerHTML=shopL.map(item=>`
+    <div class="shop-item${item.checked?' done':''}">
+      <div class="shop-check${item.checked?' checked':''}" onclick="toggleCheck('${item.uid}')">${item.checked?'✓':''}</div>
+      <div style="width:12px;height:12px;border-radius:3px;background:${item.color||'#888'};flex-shrink:0"></div>
+      <div class="shop-info">
+        <div class="shop-name">${item.name}</div>
+        <div class="shop-meta">${item.qty||''} ${item.auto?'· <span style="color:var(--ylw)">Auto</span>':''}</div>
+      </div>
+      <div class="shop-badge"><span class="pill ${prioCls[item.prio]||'pill-b'}">${prioLbl[item.prio]||item.prio}</span></div>
+      <button class="btn btn-dng btn-xs" onclick="removeShopItem('${item.uid}')">✕</button>
+    </div>
+  `).join('');
+}
+
+function toggleCheck(uid) {
+  const item=shopL.find(s=>s.uid===uid);
+  if(item){ item.checked=!item.checked; sv('shopL',shopL); renderShopList(); updateBadge(); }
+}
+function removeShopItem(uid) { shopL=shopL.filter(s=>s.uid!==uid); sv('shopL',shopL); renderShopList(); updateBadge(); }
+function clearChecked() { shopL=shopL.filter(s=>!s.checked); sv('shopL',shopL); renderShopList(); updateBadge(); }
+function addShopItem() {
+  const name=document.getElementById('sh-name').value.trim();
+  if(!name){alert('Name eingeben!');return;}
+  shopL.push({uid:uid(),name,color:'#888',qty:document.getElementById('sh-qty').value||'',prio:document.getElementById('sh-prio').value,auto:false,checked:false});
+  sv('shopL',shopL); renderShopList(); updateBadge();
+  document.getElementById('sh-name').value=''; document.getElementById('sh-qty').value='';
+}
+
+function updateBadge() {
+  const n = shopL.filter(s=>!s.checked).length;
+  const show = n>0;
+  ['nb-einkauf','mnb-einkauf'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.style.display=show?'':'none'; el.textContent=n;}
+  });
+  const dot = document.getElementById('mob-dot');
+  if(dot) dot.style.display=show?'block':'none';
+}
+
+// ═══════════════════════════════════════════════
+// LOW STOCK NOTIFICATIONS
+// ═══════════════════════════════════════════════
+function checkLowStock() {
+  const thresh=(sett.warnPct||15)/100;
+  const low=fils.filter(f=>f.remaining/f.weight<thresh);
+  if(!low.length) return;
+  const banner=document.getElementById('notif-banner');
+  const txt=document.getElementById('notif-text');
+  if(banner&&txt){
+    txt.textContent=`🔔 ${low.length} Filament${low.length>1?'e':''} fast leer: ${low.map(f=>f.name).join(', ')}`;
+    banner.style.display='flex';
+  }
+  if(Notification.permission==='granted') {
+    low.forEach(f=>{
+      try{ new Notification('🧵 Filament fast leer',{body:`${f.name}: nur noch ${f.remaining}g (${Math.round(f.remaining/f.weight*100)}%)`,icon:'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">⬡</text></svg>'}); }catch(e){}
+    });
+  }
+}
+
+function initNotifStatus() {
+  const el=document.getElementById('notif-status');
+  const btn=document.getElementById('notif-btn');
+  if(!el||!btn) return;
+  if(!('Notification' in window)){el.className='alert alert-e';el.textContent='❌ Browser unterstützt keine Benachrichtigungen';btn.disabled=true;return;}
+  if(Notification.permission==='granted'){el.className='alert alert-s';el.textContent='✅ Benachrichtigungen sind aktiv!';btn.textContent='✓ Bereits aktiviert';btn.disabled=true;}
+  else if(Notification.permission==='denied'){el.className='alert alert-e';el.textContent='❌ Benachrichtigungen blockiert (Browser-Einstellungen)';btn.disabled=true;}
+  else{el.className='alert alert-i';el.textContent='ℹ️ Benachrichtigungen sind noch nicht aktiviert.';}
+}
+
+function requestNotif() {
+  if(!('Notification' in window)) return;
+  Notification.requestPermission().then(p=>{
+    initNotifStatus();
+    if(p==='granted'){try{new Notification('✅ 3D Kalkulator',{body:'Benachrichtigungen sind jetzt aktiv!'});}catch(e){}}
+  });
+}
+
+// ═══════════════════════════════════════════════
+// HISTORY
+// ═══════════════════════════════════════════════
+function renderHistPage() {
+  const C=hist[0]?.cur||CUR();
+
+  // KPIs always on full dataset
+  document.getElementById('hk-n').textContent=hist.length;
+  const rev=hist.reduce((a,e)=>a+e.price,0);
+  const co =hist.reduce((a,e)=>a+e.cost,0);
+  const pr =hist.reduce((a,e)=>a+e.profit,0);
+  document.getElementById('hk-rev').textContent=hist.length?`${f2(rev)} ${C}`:'—';
+  document.getElementById('hk-cost').textContent=hist.length?`${f2(co)} ${C}`:'—';
+  document.getElementById('hk-profit').textContent=hist.length?`${f2(pr)} ${C}`:'—';
+  const avgMargin=hist.length?hist.reduce((a,e)=>a+e.margin,0)/hist.length:0;
+  document.getElementById('hk-margin').textContent=hist.length?`⌀ ${avgMargin.toFixed(1)}% Marge`:'—';
+
+  const empty    = document.getElementById('hist-empty');
+  const wrap     = document.getElementById('hist-table-wrap');
+  const chartCard= document.getElementById('hist-chart-card');
+  const summary  = document.getElementById('hist-summary');
+
+  empty.style.display   = hist.length?'none':'block';
+  wrap.style.display    = hist.length?'block':'none';
+  if(chartCard) chartCard.style.display=hist.length>1?'block':'none';
+  if(summary)   summary.style.display =hist.length?'block':'none';
+  if(!hist.length) return;
+
+  // Get filter values
+  const searchQ  = (document.getElementById('hist-search')?.value||'').toLowerCase();
+  const statusF  = document.getElementById('hist-filter-status')?.value||'';
+  const sortBy   = document.getElementById('hist-sort')?.value||'newest';
+
+  // Filter
+  let entries = hist.filter(e=>{
+    if(searchQ && !e.name.toLowerCase().includes(searchQ) && !(e.client||'').toLowerCase().includes(searchQ)) return false;
+    if(statusF && (e.status||'offen') !== statusF) return false;
+    return true;
+  });
+
+  // Sort
+  if(sortBy==='oldest')  entries = [...entries].reverse();
+  if(sortBy==='profit')  entries = [...entries].sort((a,b)=>b.profit-a.profit);
+  if(sortBy==='cost')    entries = [...entries].sort((a,b)=>b.cost-a.cost);
+
+  // Status helpers
+  const statusLabel = {offen:'🟡 Offen',fertig:'🟢 Fertig',bezahlt:'✅ Bezahlt'};
+  const statusColors= {offen:'var(--ylw)',fertig:'var(--green)',bezahlt:'var(--green)'};
+
+  document.getElementById('hist-body').innerHTML=entries.map((e,i)=>{
+    const dots=e.fils?e.fils.slice(0,3).map(f=>`<span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:${f.color};margin-right:2px" title="${f.name}"></span>`).join(''):'';
+    const status = e.status||'offen';
+    const statusCls = {offen:'pill-y',fertig:'pill-g',bezahlt:'pill-g'}[status]||'pill-y';
+    return`<tr>
+      <td style="color:var(--muted)" class="mono">${hist.indexOf(e)+1}</td>
+      <td><strong>${e.name}</strong>${e.stockDeducted?'<span style="font-size:.65rem;color:var(--muted);margin-left:4px">📦</span>':''}</td>
+      <td style="color:var(--sub);font-size:.8rem">${e.client||'—'}</td>
+      <td class="mono">${e.date}</td>
+      <td>${dots}<span style="font-size:.78rem;vertical-align:middle">${e.fils?e.fils.map(f=>f.name).join(', '):'—'}</span></td>
+      <td class="mono">${e.totalG||e.g||'?'}g</td>
+      <td class="mono">${e.h}h</td>
+      <td class="mono" style="color:var(--red)">${f2(e.cost)} ${e.cur}</td>
+      <td class="mono" style="color:var(--blue)">${f2(e.price)} ${e.cur}</td>
+      <td class="mono" style="color:var(--green)">+${f2(e.profit)} ${e.cur}</td>
+      <td>
+        <select class="pill ${statusCls}" style="border:none;background:transparent;font-size:.72rem;font-weight:600;cursor:pointer;color:${statusColors[status]}"
+          onchange="setHistStatus('${e.id}',this.value)">
+          <option value="offen"  ${status==='offen'  ?'selected':''}>🟡 Offen</option>
+          <option value="fertig" ${status==='fertig' ?'selected':''}>🟢 Fertig</option>
+          <option value="bezahlt"${status==='bezahlt'?'selected':''}>✅ Bezahlt</option>
+        </select>
+      </td>
+      <td style="white-space:nowrap">
+        <button class="btn btn-ghost btn-xs" onclick="dupHist('${e.id}')" title="Duplizieren">⧉</button>
+        <button class="btn btn-ghost btn-xs" onclick="loadHistToCalc('${e.id}')" title="Im Kalkulator öffnen">↗</button>
+        <button class="btn btn-dng btn-xs" onclick="delHist('${e.id}')" title="Löschen">✕</button>
+      </td>
+    </tr>`;
+  }).join('');
+
+  // Filtered summary
+  if(summary) {
+    const fRev = entries.reduce((a,e)=>a+e.price,0);
+    const fPr  = entries.reduce((a,e)=>a+e.profit,0);
+    const offen   = entries.filter(e=>(e.status||'offen')==='offen').length;
+    const bezahlt = entries.filter(e=>e.status==='bezahlt').length;
+    summary.textContent = `Angezeigt: ${entries.length} Aufträge · Umsatz: ${f2(fRev)} ${C} · Gewinn: ${f2(fPr)} ${C} · Offen: ${offen} · Bezahlt: ${bezahlt}`;
+  }
+
+  renderProfitChart();
+}
+
+function setHistStatus(id, status) {
+  const e = hist.find(h=>h.id==id);
+  if(!e) return;
+  e.status = status;
+  sv('hist',hist);
+  renderHistPage();
+}
+
+function delHist(id) {
+  if(!confirm('Diesen Auftrag löschen?')) return;
+  hist = hist.filter(h=>h.id!=id);
+  sv('hist',hist); updateSB(); renderHistPage();
+}
+
+function dupHist(id) {
+  const e = hist.find(h=>h.id==id);
+  if(!e) return;
+  const copy = JSON.parse(JSON.stringify(e));
+  copy.id   = Date.now();
+  copy.date = new Date().toLocaleDateString('de-DE');
+  copy.name = copy.name + ' (Kopie)';
+  copy.status = 'offen';
+  hist.unshift(copy);
+  sv('hist',hist); updateSB(); renderHistPage();
+  showAlert && showAlert('r-msg','✓ Auftrag dupliziert','i');
+}
+
+function loadHistToCalc(id) {
+  const e = hist.find(h=>h.id==id);
+  if(!e) return;
+  go('kalkulator');
+  // Fill job name + client
+  const jn = document.getElementById('n-jname'); if(jn) jn.value = e.name;
+  const jc = document.getElementById('n-jclient'); if(jc) jc.value = e.client||'';
+  // Fill hours
+  const nh=document.getElementById('n-h'),sh=document.getElementById('s-h');
+  if(nh) nh.value=e.h||''; if(sh) sh.value=Math.min(e.h||0,48);
+  // Add filament rows
+  mFilRows=[];
+  renderMFilRows();
+  if(e.fils) {
+    e.fils.forEach(jf=>{
+      const fil = fils.find(f=>f.id===jf.filId);
+      if(fil) {
+        addMFilRow();
+        const row = mFilRows[mFilRows.length-1];
+        row.filId = fil.id; row.grams = jf.grams;
+        cddSelect(row.uid, fil.id);
+        const gel = document.getElementById('mf-g-'+row.uid);
+        if(gel) gel.value = jf.grams;
+      }
+    });
+  }
+  doCalc();
+}
+
+function renderProfitChart() {
+  const ctx = document.getElementById('profitChart');
+  if(!ctx||hist.length<2) return;
+  if(profitCh) profitCh.destroy();
+  const labels = hist.map((_,i)=>hist.length-i).reverse();
+  const profits = hist.map(e=>e.profit).reverse();
+  const cumProfit = profits.map((v,i,arr)=>arr.slice(0,i+1).reduce((a,b)=>a+b,0));
+  profitCh = new Chart(ctx,{
+    type:'line',
+    data:{
+      labels,
+      datasets:[
+        {label:'Gewinn pro Job',data:profits,borderColor:'#16a34a',backgroundColor:'#16a34a22',tension:.3,pointRadius:4,pointHoverRadius:6,fill:true,borderWidth:2},
+        {label:'Kumulierter Gewinn',data:cumProfit,borderColor:'#3b6cf7',backgroundColor:'transparent',tension:.3,pointRadius:3,pointHoverRadius:5,borderWidth:2,borderDash:[5,3]}
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{position:'top',labels:{font:{size:11,family:'DM Sans'},usePointStyle:true,pointStyle:'circle'}},
+        tooltip:{callbacks:{label:ctx=>`${ctx.dataset.label}: ${f2(ctx.raw)} ${CUR()}`}}},
+      scales:{
+        x:{grid:{color:'#e2e6ec'},ticks:{font:{size:11}}},
+        y:{grid:{color:'#e2e6ec'},ticks:{font:{size:11},callback:v=>`${f2(v)} ${CUR()}`}}
+      }
+    }
+  });
+}
+
+function clearHist() {
+  if(!confirm('Kompletten Verlauf löschen?'))return;
+  hist=[]; sv('hist',hist); renderHistPage(); updateSB();
+}
+
+// ═══════════════════════════════════════════════
+// SIDEBAR STATS
+// ═══════════════════════════════════════════════
+function updateSB() {
+  const C=CUR();
+  const totalSpulen=fils.reduce((a,f)=>a+(f.count||1),0);
+  document.getElementById('sb-sp').textContent=totalSpulen;
+  const wt=fils.reduce((a,f)=>a+(f.price*(f.remaining/f.weight)),0);
+  document.getElementById('sb-wt').textContent=fils.length?`${f2(wt)} ${C}`:'—';
+  document.getElementById('sb-au').textContent=hist.length;
+  const gw=hist.reduce((a,e)=>a+e.profit,0);
+  document.getElementById('sb-gw').textContent=hist.length?`${f2(gw)} ${C}`:'—';
+}
+
+// ═══════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════
+function showAlert(id,msg,type) {
+  const el=document.getElementById(id);
+  if(!el)return;
+  const cls={s:'alert-s',e:'alert-e',i:'alert-i',w:'alert-w'}[type]||'alert-i';
+  el.innerHTML=`<div class="alert ${cls}">${msg}</div>`;
+  el.style.display='block';
+  setTimeout(()=>el.style.display='none',3200);
+}
+
+function exportD() {
+  const b=new Blob([JSON.stringify({fils,hist,sett,shopL},null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='3dprint.json';a.click();
+}
+function importD(ev) {
+  const file=ev.target.files[0];if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{const d=JSON.parse(e.target.result);
+      if(d.fils){fils=d.fils;sv('fils',fils);}
+      if(d.hist){hist=d.hist;sv('hist',hist);}
+      if(d.sett){sett=d.sett;sv('sett',sett);}
+      if(d.shopL){shopL=d.shopL;sv('shopL',shopL);}
+      location.reload();}
+    catch{alert('Ungültige JSON-Datei!');}
+  };r.readAsText(file);
+}
+
+
+// ═══════════════════════════════════════════════
+// G-CODE IMPORT  –  Bambu Studio / Orca Slicer
+// ═══════════════════════════════════════════════
+
+function importGcode(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  event.target.value = '';
+  var reader = new FileReader();
+  reader.onload = function(e) { parseAndApplyGcode(e.target.result, file.name); };
+  if (file.name.toLowerCase().endsWith('.bgcode'))
+    reader.readAsText(file.slice(0, 524288), 'latin1');
+  else
+    reader.readAsText(file, 'utf-8');
+}
+
+/* ── helpers ────────────────────── */
+function hex2rgb(h){h=h.replace(/[^0-9a-fA-F]/g,'');if(h.length===3)h=h[0]+h[0]+h[1]+h[1]+h[2]+h[2];if(h.length>6)h=h.substring(0,6);if(h.length<6)return{r:0,g:0,b:0};var n=parseInt(h,16);return{r:(n>>16)&255,g:(n>>8)&255,b:n&255};}
+function colDist(a,b){try{var A=hex2rgb(a),B=hex2rgb(b);return Math.sqrt((A.r-B.r)*(A.r-B.r)+(A.g-B.g)*(A.g-B.g)+(A.b-B.b)*(A.b-B.b));}catch(e){return 999;}}
+function sw(hex,sz){sz=sz||14;return '<span style="display:inline-block;width:'+sz+'px;height:'+sz+'px;border-radius:4px;background:'+hex+';vertical-align:middle;border:1.5px solid rgba(0,0,0,.12);margin-right:2px"></span>';}
+function toNum(s){if(!s)return NaN;return parseFloat(String(s).split(',')[0].trim().replace(/,/g,'.').replace(/[^\d.\-]/g,''));}
+function str2h(s){
+  if(!s)return null;
+  s=String(s).trim().replace(/;.*/,'').split(',')[0].trim();
+  if(/^[\d.]+$/.test(s)){var sec=parseFloat(s);return(sec>0&&sec<5400000)?sec/3600:null;}
+  var tot=0,ok=false;
+  var dM=s.match(/(\d+)\s*d/i),hM=s.match(/(\d+)\s*h/i),
+      mM=s.match(/(\d+)\s*m(?:[^a-z]|$)/i),sM=s.match(/(\d+)\s*s(?:[^a-z]|$)/i);
+  if(dM){tot+=parseInt(dM[1])*86400;ok=true;}
+  if(hM){tot+=parseInt(hM[1])*3600;ok=true;}
+  if(mM){tot+=parseInt(mM[1])*60;ok=true;}
+  if(sM){tot+=parseInt(sM[1]);ok=true;}
+  var hms=s.match(/(\d+):(\d+):(\d+)/);
+  if(hms){tot=parseInt(hms[1])*3600+parseInt(hms[2])*60+parseInt(hms[3]);ok=true;}
+  return(ok&&tot>0)?tot/3600:null;
+}
+function cleanHex(s){
+  if(!s)return null;
+  var m=String(s).match(/#?([0-9a-fA-F]{6,8})/);
+  if(!m)return null;
+  return '#'+m[1].substring(0,6).toLowerCase();
+}
+function splitKV(raw){
+  var body=raw.replace(/^;+\s*/,'');
+  var m=body.match(/^([^=:]+?)\s*[=:]\s*([\s\S]*)$/);
+  if(!m)return null;
+  var key=m[1].toLowerCase().replace(/[\s\-]+/g,'_').replace(/[^a-z0-9_]/g,'');
+  return{key:key,val:m[2].trim(),body:body};
+}
+
+/* ════════════════════════════════════════════════
+   GCODE PARSER  — Creality Print / Orca / PrusaSlicer
+   ════════════════════════════════════════════════ */
+function parseAndApplyGcode(text, filename){
+  var resEl=document.getElementById('gcode-result');
+
+  /* collect comment lines */
+  var comments=[];
+  text.split(/\r?\n/).forEach(function(l){var r=l.trim();if(r&&r[0]===';')comments.push(r);});
+
+  var D={
+    hours:null, grams:null, filMm:null, filCm3:null,
+    extruderColor:null,    /* real nozzle color (extruder_colour) */
+    allSlotColors:[],      /* filament_colour list (all AMS slots) */
+    allSlotGrams:[],       /* per-slot gram values */
+    allSlotTypes:[],       /* per-slot types */
+    activeColors:[],       /* colors of actually-used slots */
+    activeTypes:[],
+    nozzleT:null, bedT:null,
+    layerH:null, totalLayers:null, nozzleDia:null,
+    printerModel:null, printerSettings:null,
+    infillPct:null, supportEnabled:null,
+    slicerCost:null, printName:null,
+    maxElapsed:0, timeSource:null
+  };
+
+  /* ── PASS 1: key = value ──────────────────────── */
+  for(var i=0;i<comments.length;i++){
+    var p=splitKV(comments[i]);
+    if(!p)continue;
+    var k=p.key,v=p.val,rb=p.body.toLowerCase();
+
+    /* TIME_ELAPSED — track maximum for fallback */
+    if(k==='time_elapsed'){var el=parseFloat(v.split(',')[0]);if(!isNaN(el)&&el>D.maxElapsed)D.maxElapsed=el;}
+
+    /* TIME — strict key matching, no elapsed/remaining */
+    if(!D.hours){
+      var isT=(/^estimated_printing_time/.test(k)||
+               k==='time'||k==='print_time'||k==='printing_time'||
+               k==='estimated_time'||k==='total_time'||k==='total_print_time');
+      if(isT&&!/elapsed|remaining/.test(k)){var t=str2h(v);if(t&&t>0&&t<999)D.hours=Math.round(t*100)/100;}
+    }
+
+    /* GRAMS — ONLY lines with explicit [g] marker OR exact weight keys
+       NEVER accept [mm] or [cm3] lines as grams */
+    if(!D.grams){
+      var hasG  =/\[g\]/.test(rb);
+      var hasMm =/\[mm\]/.test(rb);
+      var hasCm3=/\[cm3?\]/.test(rb);
+      var exactKey=(k==='filament_weight'||k==='filament_used_weight'||
+                    k==='total_filament_weight'||k==='total_filament_used'||
+                    k==='total_weight'||k==='filament_wt');
+      if((hasG||exactKey)&&!hasMm&&!hasCm3){
+        /* comma-separated per-slot values — store all, sum non-zero */
+        var rawParts=v.replace(/\[.*?\]/g,'').split(',');
+        var nums=rawParts.map(function(x){return parseFloat(x.trim().replace(',','.'));});
+        D.allSlotGrams=nums;
+        var total=0;
+        nums.forEach(function(n){if(!isNaN(n)&&n>0)total+=n;});
+        if(total>0)D.grams=Math.round(total*10)/10;
+      }
+    }
+
+    /* FILAMENT LENGTH / VOLUME */
+    if(!D.filMm&&/filament/.test(k)&&/\[mm\]/.test(rb)){var mm=toNum(v.replace(/\[.*?\]/g,'').trim());if(mm>0)D.filMm=Math.round(mm);}
+    if(!D.filCm3&&/filament/.test(k)&&/\[cm3?\]/.test(rb)){var cm=toNum(v.replace(/\[.*?\]/g,'').trim());if(cm>0)D.filCm3=Math.round(cm*100)/100;}
+
+    /* EXTRUDER COLOR — the real print color */
+    if(!D.extruderColor&&(k==='extruder_colour'||k==='extruder_color')){
+      var ec=cleanHex(v.split(';')[0].trim());
+      if(ec)D.extruderColor=ec;
+    }
+
+    /* ALL SLOT COLORS */
+    if(k==='filament_colour'||k==='filament_color'){
+      D.allSlotColors=[];
+      v.split(';').forEach(function(chunk){D.allSlotColors.push(cleanHex(chunk.trim()));});
+    }
+
+    /* SLOT TYPES */
+    if(k==='filament_type'){
+      D.allSlotTypes=v.split(';').map(function(t){return t.trim();}).filter(Boolean);
+    }
+
+    /* TEMPERATURES */
+    if(!D.nozzleT&&k==='nozzle_temperature'){var nt=parseInt(v.split(',')[0]);if(nt>100&&nt<500)D.nozzleT=nt;}
+    if(!D.bedT&&(k==='first_layer_bed_temperature'||k==='bed_temperature'||
+                 k==='bed_temperature_initial_layer_single'||k==='bed_temp')){
+      var bt=parseInt(v.split(',')[0]);if(bt>=0&&bt<200)D.bedT=bt;
+    }
+
+    /* LAYER / NOZZLE */
+    if(!D.layerH&&k==='layer_height'){var lh=toNum(v);if(lh>0&&lh<2)D.layerH=lh;}
+    if(!D.totalLayers&&/^total_layer/.test(k)){var lc=parseInt(v);if(lc>0)D.totalLayers=lc;}
+    if(!D.nozzleDia&&k==='nozzle_diameter'){var nd=toNum(v.split(',')[0]);if(nd>0&&nd<3)D.nozzleDia=nd;}
+
+    /* PRINTER */
+    if(k==='printer_model')          D.printerModel=v.split(';')[0].trim();
+    if(k==='printer_settings_id')    D.printerSettings=v.split(';')[0].trim();
+
+    /* INFILL / SUPPORT */
+    if(!D.infillPct&&k==='sparse_infill_density'){var ip=toNum(v.replace('%',''));if(ip>=0&&ip<=100)D.infillPct=ip;}
+    if(D.supportEnabled===null&&k==='enable_support') D.supportEnabled=(v==='1'||/true|yes/i.test(v));
+
+    /* COST */
+    if(!D.slicerCost&&(k==='total_filament_cost'||k==='filament_cost')){
+      var cs=toNum(v.split(',')[0]);if(cs>0)D.slicerCost=Math.round(cs*100)/100;
+    }
+
+    /* NAME */
+    if(!D.printName&&(k==='model_name'||k==='print_name'||k==='job_name'))
+      D.printName=v.split('.')[0].trim();
+  }
+
+  /* ── PASS 2: fallback ─────────────────────────── */
+  for(var i=0;i<comments.length;i++){
+    var b2=comments[i].slice(1).trim();
+    /* time: any line with time keyword, not elapsed */
+    if(!D.hours&&/time|dauer/i.test(b2)&&!/elapsed|remaining|filament|weight|cost|temp|heat|fan/i.test(b2)){
+      var af=b2.replace(/^[^=:]+[=:]\s*/,'').trim();var tf=str2h(af);
+      if(tf&&tf>0&&tf<999)D.hours=Math.round(tf*100)/100;
+    }
+    /* grams: [g] marker */
+    if(!D.grams&&/\[g\]/i.test(b2)&&!/\[mm\]|\[cm/i.test(b2)){
+      var gp=b2.match(/([\d.]+)\s*\[g\]/i);
+      if(gp){var gv=parseFloat(gp[1]);if(gv>0&&gv<9999)D.grams=Math.round(gv*10)/10;}
+    }
+  }
+
+  /* ── PASS 3: TIME_ELAPSED fallback ───────────── */
+  if(!D.hours&&D.maxElapsed>0){D.hours=Math.round(D.maxElapsed/36)/100;D.timeSource='letzte TIME_ELAPSED';}
+
+  /* ── BUILD ACTIVE COLOR + TYPE LIST ─────────────
+     Priority:
+     1. extruder_colour  = real nozzle color
+     2. filament_colour[slot] where gram usage > 0
+  ─────────────────────────────────────────────── */
+  var usedSlots=[];
+  D.allSlotGrams.forEach(function(g,idx){if(!isNaN(g)&&g>0)usedSlots.push(idx);});
+
+  if(D.extruderColor){
+    D.activeColors=[D.extruderColor];
+    if(usedSlots.length>0&&D.allSlotTypes[usedSlots[0]]) D.activeTypes=[D.allSlotTypes[usedSlots[0]]];
+    else if(D.allSlotTypes.length>0) D.activeTypes=[D.allSlotTypes[0]];
+  } else if(usedSlots.length>0){
+    usedSlots.forEach(function(idx){
+      if(D.allSlotColors[idx])D.activeColors.push(D.allSlotColors[idx]);
+      if(D.allSlotTypes[idx])D.activeTypes.push(D.allSlotTypes[idx]);
+    });
+  } else if(D.allSlotColors.length>0){
+    for(var i=0;i<D.allSlotColors.length;i++){if(D.allSlotColors[i]){D.activeColors=[D.allSlotColors[i]];break;}}
+    if(D.allSlotTypes.length>0)D.activeTypes=[D.allSlotTypes[0]];
+  }
+
+  /* ── APPLY ───────────────────────────────────── */
+  var found=[],info=[],missing=[];
+
+  /* TIME */
+  if(D.hours!==null){
+    var nh=document.getElementById('n-h'),sh=document.getElementById('s-h');
+    if(nh)nh.value=D.hours;if(sh)sh.value=Math.min(D.hours,48);
+    var hh=Math.floor(D.hours),mm2=Math.round((D.hours-hh)*60);
+    found.push('⏱ '+(hh>0?hh+'h ':'')+mm2+'min'+(D.timeSource?' <span style="opacity:.4;font-size:.7rem">('+D.timeSource+')</span>':''));
+  } else { missing.push('Druckzeit'); }
+
+  /* GRAMS */
+  if(D.grams!==null){
+    if(mFilRows.length===0)addMFilRow();
+    var r0=mFilRows[0];
+    if(r0){r0.grams=D.grams;var gel=document.getElementById('mf-g-'+r0.uid);if(gel)gel.value=D.grams;updateMFilCost(r0.uid);}
+    found.push('⚖ '+D.grams+'g Filament');
+    if(D.filMm)  info.push('📏 '+D.filMm+'mm');
+    if(D.filCm3) info.push('🧪 '+D.filCm3+' cm³');
+  } else { missing.push('Gramm'); }
+
+  /* FILAMENT MATCH */
+  var matched=null,matchNote='';
+  if(fils.length>0&&(D.activeColors.length>0||D.activeTypes.length>0)){
+    var gcTypes=D.activeTypes.map(function(t){return t.toUpperCase().replace(/[+ ]/g,'');});
+    var scored=fils.map(function(f){
+      var sc=0,ft=f.type.toUpperCase().replace(/[+ ]/g,'');
+      gcTypes.forEach(function(gt){
+        if(ft===gt||ft.startsWith(gt)||gt.startsWith(ft))sc+=5;
+        else if(ft.includes(gt)||gt.includes(ft))sc+=2;
+      });
+      var bestD=999;
+      D.activeColors.forEach(function(gc){var d=colDist(f.color,gc);if(d<bestD)bestD=d;});
+      if(bestD<441)sc+=Math.round(7*(1-bestD/441));
+      return{f:f,sc:sc,dist:bestD};
+    });
+    scored.sort(function(a,b){return b.sc-a.sc;});
+    var best=scored[0];
+    if(best&&best.sc>=2){
+      matched=best.f;
+      if(gcTypes.length>0&&best.dist<80)      matchNote='Typ+Farbe (Δ'+Math.round(best.dist)+')';
+      else if(best.dist<80)                    matchNote='Farbe (Δ'+Math.round(best.dist)+')';
+      else if(gcTypes.length>0)                matchNote='Typ ('+D.activeTypes[0]+')';
+      else                                     matchNote='beste Übereinstimmung';
+    }
+  }
+  if(matched&&mFilRows.length>0){
+    cddSelect(mFilRows[0].uid,matched.id);
+    var gcSw=D.activeColors[0]?sw(D.activeColors[0])+' → ':'';
+    found.push('🎨 '+gcSw+sw(matched.color)+' '+matched.name
+      +' <span style="opacity:.5;font-size:.7rem;margin-left:3px">('+matchNote+')</span>');
+  } else if(fils.length>0){
+    missing.push('Filament (kein Match)');
+  }
+
+  /* EXTRA INFO */
+  if(usedSlots.length>1){
+    var uc=usedSlots.map(function(idx){return D.allSlotColors[idx];}).filter(Boolean);
+    info.push('🎡 Multi '+usedSlots.length+'× '+uc.map(function(c){return sw(c,11);}).join(''));
+  }
+  if(D.nozzleT)info.push('🌡 '+D.nozzleT+'°C Nozzle'+(D.bedT?' · '+D.bedT+'°C Bett':''));
+  else if(D.bedT)info.push('🌡 '+D.bedT+'°C Bett');
+  var ls='';
+  if(D.layerH)      ls+=D.layerH+'mm Schicht';
+  if(D.totalLayers) ls+=(ls?' · ':'')+D.totalLayers+' Layer';
+  if(D.nozzleDia)   ls+=(ls?' · ':'')+'∅'+D.nozzleDia+'mm';
+  if(ls)info.push('📐 '+ls);
+  var ps='';
+  if(D.infillPct!==null)ps+='Infill '+D.infillPct+'%';
+  if(D.supportEnabled!==null)ps+=(ps?' · ':'')+'Support '+(D.supportEnabled?'✓':'✗');
+  if(ps)info.push('🏗 '+ps);
+  var printerDisplay=D.printerSettings||D.printerModel;
+  if(printerDisplay)info.push('🖨 '+printerDisplay);
+  if(D.slicerCost)  info.push('💰 '+D.slicerCost+' '+CUR());
+
+  /* JOB NAME */
+  var nameEl=document.getElementById('n-jname');
+  if(nameEl&&!nameEl.value)
+    nameEl.value=D.printName||filename.replace(/\.(gcode|bgcode|gco|gc|nc|txt)$/i,'').replace(/[_-]+/g,' ').trim();
+
+  doCalc();
+
+  /* ── BANNER ───────────────────────────────────── */
+  var html='';
+  if(found.length||info.length){
+    html='<div style="background:#052e16;border:1.5px solid #166634;border-radius:9px;padding:12px 14px;margin-top:8px">';
+    html+='<div style="font-size:.69rem;font-weight:700;color:#4ade80;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">✓ G-Code ausgelesen</div>';
+    if(found.length){
+      html+='<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #14532d">';
+      found.forEach(function(f){html+='<div style="font-size:.83rem;color:#86efac;display:flex;align-items:center;gap:6px">'+f+'</div>';});
+      html+='</div>';
+    }
+    if(info.length){
+      html+='<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">';
+      info.forEach(function(f){html+='<div style="font-size:.75rem;color:#4ade80;opacity:.8;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+f+'</div>';});
+      html+='</div>';
+    }
+    if(missing.length)
+      html+='<div style="font-size:.69rem;color:#166534;margin-top:7px;padding-top:6px;border-top:1px solid #14532d">Nicht erkannt: '+missing.join(', ')+'</div>';
+    html+='</div>';
+  } else {
+    html='<div style="background:#1e1030;border:1.5px solid #6d28d9;border-radius:9px;padding:12px 14px;margin-top:8px">';
+    html+='<div style="font-size:.75rem;font-weight:700;color:#c4b5fd;margin-bottom:8px">⚠ Nichts erkannt – erste 30 Kommentarzeilen:</div>';
+    comments.slice(0,30).forEach(function(l){
+      html+='<div style="font-family:monospace;font-size:.67rem;color:#a78bfa;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+l.replace(/</g,'&lt;')+'</div>';
+    });
+    html+='</div>';
+  }
+
+  resEl.innerHTML=html;
+  resEl.style.display='block';
+  if(!missing.length&&found.length)
+    setTimeout(function(){if(resEl)resEl.style.display='none';},15000);
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// INDEXEDDB AUTO-BACKUP SYSTEM
+// Mirrors every localStorage write to IndexedDB.
+// IndexedDB persists even when localStorage is cleared.
+// ═══════════════════════════════════════════════════════════════
+function idbInit() {
+  if (!window.indexedDB) {
+    idbUpdateStatus('❌ Browser unterstützt kein IndexedDB', 'var(--red)');
+    return;
+  }
+  var req = indexedDB.open('3dprint-backup', 1);
+  req.onupgradeneeded = function(e) {
+    var db = e.target.result;
+    if (!db.objectStoreNames.contains('kv')) {
+      db.createObjectStore('kv', { keyPath: 'k' });
+    }
+  };
+  req.onsuccess = function(e) {
+    _idb = e.target.result;
+    _idbReady = true;
+    idbUpdateStatus('✅ Auto-Backup aktiv (IndexedDB)', 'var(--green)');
+
+    // Write current state to IDB immediately
+    ['fils','hist','sett','shopL'].forEach(function(k) {
+      var v = localStorage.getItem(k);
+      if (v) idbWrite(k, v);
+    });
+
+    // Check if localStorage is empty but IDB has data → offer restore
+    idbCheckRestore();
+
+    // Update last backup time
+    idbWrite('_backup_time', JSON.stringify(new Date().toLocaleString('de-DE')));
+    idbRead('_backup_time', function(v) {
+      var el = document.getElementById('backup-last');
+      if (el && v) el.textContent = 'Letztes Backup: ' + JSON.parse(v);
+    });
+  };
+  req.onerror = function() {
+    idbUpdateStatus('⚠ IndexedDB Fehler — nur localStorage aktiv', 'var(--ylw)');
+  };
+}
+
+function idbWrite(k, v) {
+  if (!_idbReady || !_idb) return;
+  try {
+    var tx = _idb.transaction('kv', 'readwrite');
+    var store = tx.objectStore('kv');
+    store.put({ k: k, v: v });
+    // Update backup timestamp
+    if (k !== '_backup_time') {
+      store.put({ k: '_backup_time', v: JSON.stringify(new Date().toLocaleString('de-DE')) });
+      var el = document.getElementById('backup-last');
+      if (el) el.textContent = 'Letztes Backup: ' + new Date().toLocaleString('de-DE');
+    }
+  } catch(e) {}
+}
+
+function idbRead(k, cb) {
+  if (!_idbReady || !_idb) return;
+  try {
+    var tx = _idb.transaction('kv', 'readonly');
+    var store = tx.objectStore('kv');
+    var req = store.get(k);
+    req.onsuccess = function() {
+      cb(req.result ? req.result.v : null);
+    };
+  } catch(e) { cb(null); }
+}
+
+function idbCheckRestore() {
+  // If localStorage has no data but IDB does → show banner
+  var lsEmpty = !localStorage.getItem('fils') || localStorage.getItem('fils') === '[]';
+  if (!lsEmpty) return;
+  idbRead('fils', function(v) {
+    if (!v || v === '[]') return;
+    try {
+      var data = JSON.parse(v);
+      if (!data.length) return;
+    } catch(e) { return; }
+    // Show restore banner at top
+    var banner = document.createElement('div');
+    banner.id = 'restore-banner';
+    banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9999;background:#1e40af;color:#fff;padding:12px 20px;display:flex;align-items:center;gap:12px;font-size:.85rem;font-weight:500;box-shadow:0 4px 20px rgba(0,0,0,.3)';
+    banner.innerHTML = '<span style="font-size:18px">🔄</span>'
+      + '<span style="flex:1">Auto-Backup gefunden! Deine Daten wurden wiederhergestellt.</span>'
+      + '<button onclick="idbRestore()" style="background:#fff;color:#1e40af;border:none;padding:6px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.82rem">Jetzt wiederherstellen</button>'
+      + '<button onclick="document.getElementById(\'restore-banner\').remove()" style="background:none;border:none;color:rgba(255,255,255,.7);cursor:pointer;font-size:18px;padding:0 4px">×</button>';
+    document.body.prepend(banner);
+  });
+}
+
+function idbRestore() {
+  if (!_idbReady || !_idb) {
+    alert('IndexedDB nicht verfügbar.');
+    return;
+  }
+  var keys = ['fils','hist','sett','shopL'];
+  var loaded = 0;
+  var found = 0;
+  keys.forEach(function(k) {
+    idbRead(k, function(v) {
+      loaded++;
+      if (v && v !== 'null') {
+        localStorage.setItem(k, v);
+        found++;
+      }
+      if (loaded === keys.length) {
+        var el = document.getElementById('backup-restore-msg');
+        if (found > 0) {
+          if (el) {
+            el.innerHTML = '<div class="alert alert-s">✅ ' + found + ' Datensätze wiederhergestellt! Seite wird neu geladen…</div>';
+            el.style.display = 'block';
+          }
+          var banner = document.getElementById('restore-banner');
+          if (banner) banner.remove();
+          setTimeout(function() { location.reload(); }, 1500);
+        } else {
+          if (el) {
+            el.innerHTML = '<div class="alert alert-w">⚠ Kein Backup gefunden.</div>';
+            el.style.display = 'block';
+          }
+        }
+      }
+    });
+  });
+}
+
+function idbShowInfo() {
+  if (!_idbReady || !_idb) { alert('IndexedDB nicht verfügbar.'); return; }
+  var keys = ['fils','hist','sett','shopL','_backup_time'];
+  var info = [];
+  var loaded = 0;
+  keys.forEach(function(k) {
+    idbRead(k, function(v) {
+      loaded++;
+      if (v && v !== 'null' && v !== '[]' && v !== '{}') {
+        var size = Math.round(v.length / 1024 * 10) / 10;
+        try {
+          var parsed = JSON.parse(v);
+          var count = Array.isArray(parsed) ? parsed.length + ' Einträge' : 'gesetzt';
+          info.push(k + ': ' + count + ' (' + size + ' KB)');
+        } catch(e) {
+          info.push(k + ': ' + size + ' KB');
+        }
+      }
+      if (loaded === keys.length) {
+        alert('IndexedDB Backup-Inhalt:\n\n' + (info.length ? info.join('\n') : 'Kein Backup vorhanden'));
+      }
+    });
+  });
+}
+
+function idbClear() {
+  if (!_idbReady || !_idb) return;
+  try {
+    var tx = _idb.transaction('kv', 'readwrite');
+    tx.objectStore('kv').clear();
+  } catch(e) {}
+}
+
+function idbUpdateStatus(msg, color) {
+  var el = document.getElementById('backup-idb-status');
+  if (el) { el.textContent = msg; el.style.color = color; }
+}
+
+
+// ═══════════════════════════════════════════════════════════
+// FILAMENT VORLAGEN SYSTEM
+// ═══════════════════════════════════════════════════════════
+const BUILTIN_TPLS = {
+  tpl_esun_pla:      {name:'eSUN PLA+',brand:'eSUN',type:'PLA+',color:'#ffffff',colorName:'Weiß',weight:1000,price:22,temp:210,bedTemp:60,dia:1.75,notes:''},
+  tpl_esun_petg:     {name:'eSUN PETG',brand:'eSUN',type:'PETG',color:'#87ceeb',colorName:'Transparent Blau',weight:1000,price:24,temp:235,bedTemp:80,dia:1.75,notes:''},
+  tpl_bambu_pla:     {name:'Bambu PLA Basic',brand:'Bambu Lab',type:'PLA',color:'#ffffff',colorName:'Weiß',weight:1000,price:20,temp:220,bedTemp:35,dia:1.75,notes:'Bambu-optimiert'},
+  tpl_bambu_petg:    {name:'Bambu PETG HF',brand:'Bambu Lab',type:'PETG',color:'#ffffff',colorName:'Weiß',weight:1000,price:28,temp:270,bedTemp:70,dia:1.75,notes:'High Flow'},
+  tpl_polymaker_pla: {name:'Polymaker PLA Pro',brand:'Polymaker',type:'PLA+',color:'#333333',colorName:'Schwarz',weight:1000,price:26,temp:215,bedTemp:60,dia:1.75,notes:''},
+  tpl_hatchbox_abs:  {name:'Hatchbox ABS',brand:'Hatchbox',type:'ABS',color:'#f5f5dc',colorName:'Beige',weight:1000,price:20,temp:230,bedTemp:100,dia:1.75,notes:'Einhausung empfohlen'},
+  tpl_sainsmart_tpu: {name:'SainSmart TPU',brand:'SainSmart',type:'TPU',color:'#000000',colorName:'Schwarz',weight:800,price:25,temp:220,bedTemp:40,dia:1.75,notes:'Flexibel'},
+};
+
+function loadFilTemplate() {
+  const sel = document.getElementById('f-template').value;
+  if(!sel) return;
+
+  let tpl = null;
+  // Check user templates first
+  const userTpls = JSON.parse(localStorage.getItem('filTpls')||'{}');
+  if(userTpls[sel]) tpl = userTpls[sel];
+  else if(BUILTIN_TPLS[sel]) tpl = BUILTIN_TPLS[sel];
+  if(!tpl) return;
+
+  // Fill form
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v; };
+  set('f-name',      tpl.name      || '');
+  set('f-brand',     tpl.brand     || '');
+  set('f-type',      tpl.type      || 'PLA');
+  set('f-color',     tpl.color     || '#2196f3');
+  set('f-colorname', tpl.colorName || '');
+  const prevEl=document.getElementById('f-color-preview'); if(prevEl) prevEl.style.background=(tpl.color||'#2196f3');
+  document.querySelectorAll('.cswatch').forEach(s=>s.classList.remove('active'));
+  set('f-weight',    tpl.weight    || 1000);
+  set('f-price',     tpl.price     || '');
+  set('f-temp',      tpl.temp      || 200);
+  set('f-bed',       tpl.bedTemp   || 60);
+  set('f-dia',       tpl.dia       || 1.75);
+  set('f-notes',     tpl.notes     || '');
+  set('f-count',     1);
+  fSyncCount();
+
+  // Reset select
+  document.getElementById('f-template').value = '';
+  showAlert('f-alert', '✓ Vorlage "'+tpl.name+'" geladen', 's');
+}
+
+function saveFilTemplate() {
+  const name = document.getElementById('f-name').value.trim();
+  if(!name){ showAlert('f-alert','Bitte zuerst Name eingeben','e'); return; }
+
+  const tplName = prompt('Vorlagenname:', name);
+  if(!tplName) return;
+
+  const tplKey = 'u_'+Date.now();
+  const tpl = {
+    name:      name,
+    brand:     document.getElementById('f-brand').value.trim(),
+    type:      document.getElementById('f-type').value,
+    color:     document.getElementById('f-color').value,
+    colorName: document.getElementById('f-colorname').value.trim(),
+    weight:    parseFloat(document.getElementById('f-weight').value)||1000,
+    price:     parseFloat(document.getElementById('f-price').value)||0,
+    temp:      parseFloat(document.getElementById('f-temp').value)||200,
+    bedTemp:   parseFloat(document.getElementById('f-bed').value)||60,
+    dia:       parseFloat(document.getElementById('f-dia').value)||1.75,
+    notes:     document.getElementById('f-notes').value.trim(),
+    label:     tplName
+  };
+
+  const userTpls = JSON.parse(localStorage.getItem('filTpls')||'{}');
+  userTpls[tplKey] = tpl;
+  localStorage.setItem('filTpls', JSON.stringify(userTpls));
+
+  refreshTemplateSelect();
+  buildSwatches();
+  showAlert('f-alert', '✅ Vorlage "'+tplName+'" gespeichert!', 's');
+}
+
+function refreshTemplateSelect() {
+  const group = document.getElementById('f-tpl-user-group');
+  if(!group) return;
+  const userTpls = JSON.parse(localStorage.getItem('filTpls')||'{}');
+  group.innerHTML = Object.entries(userTpls).map(([k,t])=>
+    `<option value="${k}">${t.label||t.name}</option>`
+  ).join('');
+  // Show delete button if user has templates
+  const hasTpls = Object.keys(userTpls).length > 0;
+  let delBtn = document.getElementById('tpl-del-btn');
+  if(hasTpls && !delBtn) {
+    delBtn = document.createElement('button');
+    delBtn.id = 'tpl-del-btn';
+    delBtn.className = 'btn btn-dng btn-sm';
+    delBtn.style.cssText = 'font-size:.72rem;padding:4px 8px';
+    delBtn.textContent = '🗑';
+    delBtn.title = 'Vorlage löschen';
+    delBtn.onclick = deleteFilTemplate;
+    document.getElementById('f-template').parentNode.appendChild(delBtn);
+  } else if(!hasTpls && delBtn) {
+    delBtn.remove();
+  }
+}
+
+function deleteFilTemplate() {
+  const sel = document.getElementById('f-template').value;
+  if(!sel || sel.startsWith('tpl_')) { alert('Nur eigene Vorlagen können gelöscht werden.'); return; }
+  const userTpls = JSON.parse(localStorage.getItem('filTpls')||'{}');
+  const name = userTpls[sel]?.label || sel;
+  if(!confirm('Vorlage "'+name+'" löschen?')) return;
+  delete userTpls[sel];
+  localStorage.setItem('filTpls', JSON.stringify(userTpls));
+  refreshTemplateSelect();
+  buildSwatches();
+  showAlert('f-alert', 'Vorlage gelöscht', 'i');
+}
+
+function useAsTemplate(filId) {
+  const fil = fils.find(f=>f.id===filId);
+  if(!fil) return;
+  // Scroll to form and fill it
+  go('filamente');
+  const set = (id,v) => { const el=document.getElementById(id); if(el) el.value=v||''; };
+  set('f-name',      fil.name);
+  set('f-brand',     fil.brand||'');
+  set('f-type',      fil.type);
+  set('f-color',     fil.color);
+  set('f-colorname', fil.colorName);
+  set('f-weight',    fil.weight);
+  set('f-price',     fil.price||'');
+  set('f-temp',      fil.temp);
+  set('f-bed',       fil.bedTemp);
+  set('f-dia',       fil.dia);
+  set('f-notes',     fil.notes||'');
+  set('f-count',     1);
+  fSyncCount();
+  document.getElementById('f-name').focus();
+  showAlert('f-alert', '📋 "'+fil.name+'" als Vorlage geladen — Farbe oder Details ändern und speichern', 'i');
+}
+
+
+// ═══════════════════════════════════════════════
+// SPOOL COUNT
+// ═══════════════════════════════════════════════
+function fCountAdj(d) {
+  const el = document.getElementById('f-count');
+  const v  = parseInt(el.value) || 1;
+  el.value = Math.max(1, v + d);
+  fSyncCount();
+}
+function fSyncCount() {
+  const w = parseFloat(document.getElementById('f-weight').value) || 1000;
+  const n = parseInt(document.getElementById('f-count').value)    || 1;
+  const p = parseFloat(document.getElementById('f-price').value)  || 0;
+  const remEl = document.getElementById('f-rem');
+  if (remEl && !remEl.dataset.touched) remEl.value = Math.round(n * w);
+  const hint = document.getElementById('f-rem-hint');
+  if (hint) hint.textContent = '= ' + n + '× ' + w + 'g Spule' + (n > 1 ? 'n' : '');
+  const tot = document.getElementById('f-total-val');
+  if (tot) tot.value = (p * n).toFixed(2) + ' ' + (sett.currency || '€');
+}
+
+// ═══════════════════════════════════════════════
+// COLOR SWATCHES + AUTO NAME
+// ═══════════════════════════════════════════════
+const FILAMENT_COLORS = [
+  // Weiß / Grau / Schwarz
+  {hex:'#ffffff', name:'Weiß'},
+  {hex:'#f5f5f0', name:'Elfenbein'},
+  {hex:'#d0d0d0', name:'Hellgrau'},
+  {hex:'#808080', name:'Grau'},
+  {hex:'#404040', name:'Dunkelgrau'},
+  {hex:'#1a1a1a', name:'Schwarz'},
+  // Rot / Rosa / Lila
+  {hex:'#ff0000', name:'Rot'},
+  {hex:'#e53935', name:'Dunkelrot'},
+  {hex:'#ff6b6b', name:'Hellrot'},
+  {hex:'#ff69b4', name:'Pink'},
+  {hex:'#ff1493', name:'Magenta'},
+  {hex:'#c0392b', name:'Weinrot'},
+  {hex:'#9b59b6', name:'Lila'},
+  {hex:'#7b2d8b', name:'Violett'},
+  // Orange / Gelb
+  {hex:'#ff6600', name:'Orange'},
+  {hex:'#ff8c00', name:'Dunkelorange'},
+  {hex:'#ffa500', name:'Hellorange'},
+  {hex:'#ffff00', name:'Gelb'},
+  {hex:'#ffd700', name:'Gold'},
+  {hex:'#f0e68c', name:'Khaki'},
+  // Grün
+  {hex:'#00ff00', name:'Hellgrün'},
+  {hex:'#39ff14', name:'Neongrün'},
+  {hex:'#2ecc71', name:'Grün'},
+  {hex:'#27ae60', name:'Dunkelgrün'},
+  {hex:'#006400', name:'Waldgrün'},
+  {hex:'#00ff7f', name:'Mintgrün'},
+  // Blau / Türkis
+  {hex:'#00bfff', name:'Himmelblau'},
+  {hex:'#2196f3', name:'Blau'},
+  {hex:'#1565c0', name:'Dunkelblau'},
+  {hex:'#000080', name:'Navy'},
+  {hex:'#00ffff', name:'Cyan'},
+  {hex:'#26eeee', name:'Türkis'},
+  {hex:'#008080', name:'Dunkelcyan'},
+  // Braun / Natur
+  {hex:'#8b4513', name:'Braun'},
+  {hex:'#a0522d', name:'Hellbraun'},
+  {hex:'#d2691e', name:'Schokolade'},
+  {hex:'#f4a460', name:'Sand'},
+  // Sondermaterialien
+  {hex:'#c0c0c0', name:'Silber'},
+  {hex:'#b8860b', name:'Bronzegold'},
+  {hex:'#e8d5a3', name:'Natürlich/Holz'},
+];
+
+function colorDist3(hex1, hex2) {
+  function parse(h) {
+    h = h.replace('#','');
+    return [parseInt(h.slice(0,2),16), parseInt(h.slice(2,4),16), parseInt(h.slice(4,6),16)];
+  }
+  const [r1,g1,b1]=parse(hex1), [r2,g2,b2]=parse(hex2);
+  return Math.sqrt((r1-r2)**2+(g1-g2)**2+(b1-b2)**2);
+}
+
+function autoColorName(hex) {
+  let best = null, bestDist = 9999;
+  FILAMENT_COLORS.forEach(c => {
+    const d = colorDist3(hex, c.hex);
+    if (d < bestDist) { bestDist = d; best = c; }
+  });
+  return bestDist < 60 ? best.name : null;
+}
+
+function buildSwatches() {
+  const wrap = document.getElementById('color-swatches');
+  if (!wrap) return;
+  wrap.innerHTML = FILAMENT_COLORS.map(c =>
+    `<div class="cswatch" style="background:${c.hex};box-shadow:inset 0 0 0 1px rgba(0,0,0,.15)"
+      title="${c.name}" onclick="pickSwatch('${c.hex}','${c.name}')"></div>`
+  ).join('');
+}
+
+function pickSwatch(hex, name) {
+  setColor(hex, name);
+  // mark active swatch
+  document.querySelectorAll('.cswatch').forEach(s => s.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function onColorPick(hex) {
+  const name = autoColorName(hex);
+  setColor(hex, name);
+}
+
+function setColor(hex, name) {
+  const col  = document.getElementById('f-color');
+  const prev = document.getElementById('f-color-preview');
+  const nameEl = document.getElementById('f-colorname');
+  const autoLbl = document.getElementById('f-colorname-auto');
+  if (col)    col.value  = hex;
+  if (prev)   prev.style.background = hex;
+  if (name) {
+    if (nameEl && !nameEl.dataset.typed) nameEl.value = name;
+    if (autoLbl) { autoLbl.textContent = '← automatisch'; setTimeout(()=>{ if(autoLbl) autoLbl.textContent=''; }, 2000); }
+  }
+}
+
+// Track manual typing in colorname so auto-name doesn't overwrite it
+document.addEventListener('DOMContentLoaded', function() {
+  buildSwatches();
+  const cn = document.getElementById('f-colorname');
+  if (cn) {
+    cn.addEventListener('input', () => { cn.dataset.typed = cn.value ? '1' : ''; });
+    cn.addEventListener('blur',  () => { if (!cn.value) delete cn.dataset.typed; });
+  }
+});
+
+
+init();
+</script>
+</body>
+</html>
